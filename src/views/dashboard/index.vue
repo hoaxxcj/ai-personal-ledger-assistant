@@ -36,8 +36,8 @@
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-warning"></div>
-                    <span class="font-medium">支出统计图</span>
-                    <span class="text-xs text-gray-400">平均值: ¥{{ settingsStore.formatAmount(avgDailyExpense) }}</span>
+                    <span class="font-medium">{{ barChartType === 'expense' ? '支出' : barChartType === 'income' ? '收入' : '结余' }}统计图</span>
+                    <span class="text-xs text-gray-400">平均值: ¥{{ settingsStore.formatAmount(avgDailyBar) }}</span>
                   </div>
                   <el-icon class="text-gray-400 cursor-pointer"><DataLine /></el-icon>
                 </div>
@@ -49,9 +49,21 @@
                 暂无数据，记一笔吧~
               </div>
               <div class="flex justify-center gap-6 mt-2">
-                <span class="text-sm text-gray-500 cursor-pointer hover:text-primary">支出</span>
-                <span class="text-sm text-gray-300">收入</span>
-                <span class="text-sm text-gray-300">结余</span>
+                <span
+                  class="text-sm cursor-pointer"
+                  :class="barChartType === 'expense' ? 'text-primary font-medium' : 'text-gray-300 hover:text-primary'"
+                  @click="barChartType = 'expense'"
+                >支出</span>
+                <span
+                  class="text-sm cursor-pointer"
+                  :class="barChartType === 'income' ? 'text-primary font-medium' : 'text-gray-300 hover:text-primary'"
+                  @click="barChartType = 'income'"
+                >收入</span>
+                <span
+                  class="text-sm cursor-pointer"
+                  :class="barChartType === 'balance' ? 'text-primary font-medium' : 'text-gray-300 hover:text-primary'"
+                  @click="barChartType = 'balance'"
+                >结余</span>
               </div>
             </el-card>
 
@@ -108,9 +120,21 @@
                 <v-chart class="h-full" :option="assetOption" autoresize />
               </div>
               <div class="flex justify-center gap-6 mt-2">
-                <span class="text-sm text-gray-500 cursor-pointer hover:text-primary">净资产</span>
-                <span class="text-sm text-gray-300">总资产</span>
-                <span class="text-sm text-gray-300">总负债</span>
+                <span
+                  class="text-sm cursor-pointer"
+                  :class="assetChartType === 'asset' ? 'text-primary font-medium' : 'text-gray-300 hover:text-primary'"
+                  @click="assetChartType = 'asset'"
+                >净资产</span>
+                <span
+                  class="text-sm cursor-pointer"
+                  :class="assetChartType === 'totalAsset' ? 'text-primary font-medium' : 'text-gray-300 hover:text-primary'"
+                  @click="assetChartType = 'totalAsset'"
+                >总资产</span>
+                <span
+                  class="text-sm cursor-pointer"
+                  :class="assetChartType === 'totalDebt' ? 'text-primary font-medium' : 'text-gray-300 hover:text-primary'"
+                  @click="assetChartType = 'totalDebt'"
+                >总负债</span>
               </div>
             </el-card>
 
@@ -545,6 +569,9 @@ const editingData = ref()
 const aiLoading = ref(false)
 const aiResult = ref('')
 
+const barChartType = ref<'expense' | 'income' | 'balance'>('expense')
+const assetChartType = ref<'asset' | 'totalAsset' | 'totalDebt'>('asset')
+
 const yearPickerVisible = ref(false)
 const tempYear = ref(dayjs().format('YYYY'))
 
@@ -776,31 +803,44 @@ function nextMonth() {
   selectedDate.value = selectedMonth.value + '-01'
 }
 
-const barOption = computed(() => ({
-  tooltip: { trigger: 'axis' },
-  grid: { left: '3%', right: '3%', bottom: '3%', top: '10%', containLabel: true },
-  xAxis: {
-    type: 'category',
-    data: dailyData.value.map((d) => d.date),
-    axisLine: { show: false },
-    axisTick: { show: false },
-    axisLabel: { interval: 0, fontSize: 10, color: '#999', rotate: 45 },
-  },
-  yAxis: {
-    type: 'value',
-    splitLine: { lineStyle: { type: 'dashed', color: '#eee' } },
-    axisLabel: { show: false },
-  },
-  series: [
-    {
-      name: '支出',
-      type: 'bar',
-      data: dailyData.value.map((d) => d.expense),
-      itemStyle: { color: '#f56c6c', borderRadius: [2, 2, 0, 0] },
-      barWidth: '60%',
+const barOption = computed(() => {
+  const type = barChartType.value
+  const isBalance = type === 'balance'
+  const data = dailyData.value.map((d) =>
+    type === 'expense' ? d.expense : type === 'income' ? d.income : d.income - d.expense
+  )
+  const color = type === 'expense' ? '#f56c6c' : type === 'income' ? '#67c23a' : '#409eff'
+  return {
+    tooltip: { trigger: 'axis' },
+    grid: { left: '3%', right: '3%', bottom: '3%', top: '10%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: dailyData.value.map((d) => d.date),
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { interval: 0, fontSize: 10, color: '#999' },
     },
-  ],
-}))
+    yAxis: {
+      type: 'value',
+      splitLine: { lineStyle: { type: 'dashed', color: '#eee' } },
+      axisLabel: { show: false },
+    },
+    series: [
+      {
+        name: type === 'expense' ? '支出' : type === 'income' ? '收入' : '结余',
+        type: 'bar',
+        data,
+        itemStyle: {
+          color: isBalance
+            ? (params: any) => (params.value >= 0 ? '#67c23a' : '#f56c6c')
+            : color,
+          borderRadius: [2, 2, 0, 0],
+        },
+        barWidth: '60%',
+      },
+    ],
+  }
+})
 
 const donutOption = computed(() => {
   const colors = pieData.value.map((_, i) => {
@@ -850,34 +890,53 @@ const donutOption = computed(() => {
   }
 })
 
-const assetOption = computed(() => ({
-  tooltip: { trigger: 'axis' },
-  grid: { left: '3%', right: '3%', bottom: '3%', top: '10%', containLabel: true },
-  xAxis: {
-    type: 'category',
-    data: assetTrend.value.map((d) => d.date),
-    axisLine: { show: false },
-    axisTick: { show: false },
-    axisLabel: { interval: 0, fontSize: 10, color: '#999', rotate: 45 },
-  },
-  yAxis: {
-    type: 'value',
-    splitLine: { lineStyle: { type: 'dashed', color: '#eee' } },
-    axisLabel: { show: false },
-  },
-  series: [
-    {
-      name: '净资产',
-      type: 'line',
-      data: assetTrend.value.map((d) => d.asset),
-      smooth: true,
-      areaStyle: { color: 'rgba(103, 194, 58, 0.15)' },
-      itemStyle: { color: '#67c23a' },
-      lineStyle: { width: 2 },
-      showSymbol: false,
+const assetOption = computed(() => {
+  const type = assetChartType.value
+  let runningTotal = 0
+  const data =
+    type === 'asset'
+      ? assetTrend.value.map((d) => d.asset)
+      : type === 'totalAsset'
+        ? dailyData.value.map((d) => {
+            runningTotal += d.income
+            return runningTotal
+          })
+        : dailyData.value.map((d) => {
+            runningTotal += d.expense
+            return runningTotal
+          })
+  const color = type === 'asset' ? '#67c23a' : type === 'totalAsset' ? '#409eff' : '#f56c6c'
+  const areaColor =
+    type === 'asset' ? 'rgba(103, 194, 58, 0.15)' : type === 'totalAsset' ? 'rgba(64, 158, 255, 0.15)' : 'rgba(245, 108, 108, 0.15)'
+  return {
+    tooltip: { trigger: 'axis' },
+    grid: { left: '3%', right: '3%', bottom: '3%', top: '10%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: assetTrend.value.map((d) => d.date),
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { interval: 0, fontSize: 10, color: '#999' },
     },
-  ],
-}))
+    yAxis: {
+      type: 'value',
+      splitLine: { lineStyle: { type: 'dashed', color: '#eee' } },
+      axisLabel: { show: false },
+    },
+    series: [
+      {
+        name: type === 'asset' ? '净资产' : type === 'totalAsset' ? '总资产' : '总负债',
+        type: 'line',
+        data,
+        smooth: true,
+        areaStyle: { color: areaColor },
+        itemStyle: { color },
+        lineStyle: { width: 2 },
+        showSymbol: false,
+      },
+    ],
+  }
+})
 
 function handleLedgerSubmit(data: any) {
   if (editingId.value) {
