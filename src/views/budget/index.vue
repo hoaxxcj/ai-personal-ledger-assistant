@@ -15,7 +15,7 @@
           <div class="flex items-center justify-between mb-2">
             <span class="font-medium">{{ item.category }}</span>
             <span class="text-sm text-gray-500">
-              ¥{{ item.spent.toFixed(2) }} / ¥{{ item.total.toFixed(2) }}
+              ¥{{ settingsStore.formatAmount(item.spent) }} / ¥{{ settingsStore.formatAmount(item.total) }}
             </span>
           </div>
           <el-progress
@@ -24,7 +24,7 @@
             :stroke-width="10"
           />
           <div class="mt-2 text-xs text-gray-400 flex justify-between">
-            <span>剩余 ¥{{ (item.total - item.spent).toFixed(2) }}</span>
+            <span>剩余 ¥{{ settingsStore.formatAmount(item.total - item.spent) }}</span>
             <span>{{ item.period }}</span>
           </div>
         </el-card>
@@ -60,6 +60,9 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { Plus } from '@element-plus/icons-vue'
+import { useSettingsStore } from '@/stores/settings'
+
+const settingsStore = useSettingsStore()
 
 interface Budget {
   id: string

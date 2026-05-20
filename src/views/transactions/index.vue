@@ -41,7 +41,7 @@
         <el-table-column prop="amount" label="金额" width="120" align="right" sortable>
           <template #default="{ row }">
             <span :class="row.type === 'income' ? 'text-success' : 'text-danger'">
-              {{ row.type === 'income' ? '+' : '-' }}¥{{ row.amount.toFixed(2) }}
+              {{ row.type === 'income' ? '+' : '-' }}¥{{ settingsStore.formatAmount(row.amount) }}
             </span>
           </template>
         </el-table-column>
@@ -69,8 +69,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useLedgerStore } from '@/stores/ledger'
+import { useSettingsStore } from '@/stores/settings'
 
 const ledgerStore = useLedgerStore()
+const settingsStore = useSettingsStore()
 const loading = ref(false)
 const page = ref(1)
 const pageSize = ref(10)

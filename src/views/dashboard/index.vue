@@ -24,6 +24,7 @@
               v-for="card in statCards"
               :key="card.title"
               v-bind="card"
+              :formatter="settingsStore.formatAmount"
             />
           </div>
 
@@ -36,7 +37,7 @@
                   <div class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-warning"></div>
                     <span class="font-medium">支出统计图</span>
-                    <span class="text-xs text-gray-400">平均值: ¥{{ avgDailyExpense.toFixed(2) }}</span>
+                    <span class="text-xs text-gray-400">平均值: ¥{{ settingsStore.formatAmount(avgDailyExpense) }}</span>
                   </div>
                   <el-icon class="text-gray-400 cursor-pointer"><DataLine /></el-icon>
                 </div>
@@ -137,7 +138,7 @@
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between mb-1">
                       <span class="text-sm font-medium">{{ item.category }}</span>
-                      <span class="text-sm font-bold">¥{{ item.amount.toFixed(2) }}</span>
+                      <span class="text-sm font-bold">¥{{ settingsStore.formatAmount(item.amount) }}</span>
                     </div>
                     <el-progress
                       :percentage="Math.round(item.percentage * 100)"
@@ -176,39 +177,39 @@
               <!-- 支出环比 -->
               <div class="text-center p-3 bg-gray-50 rounded-lg">
                 <div class="text-xs text-gray-500 mb-1">支出环比</div>
-                <div class="text-lg font-bold">¥{{ monthCompare.expense.mom.current.toFixed(2) }}</div>
+                <div class="text-lg font-bold">¥{{ settingsStore.formatAmount(monthCompare.expense.mom.current) }}</div>
                 <div class="text-xs mt-1"
                   :class="monthCompare.expense.mom.diff >= 0 ? 'text-red-500' : 'text-green-500'"
                 >
                   {{ monthCompare.expense.mom.diff >= 0 ? '↑' : '↓' }}
                   {{ Math.abs(monthCompare.expense.mom.diffPercent * 100).toFixed(1) }}%
-                  <span class="text-gray-400">(上月 ¥{{ monthCompare.expense.mom.compare.toFixed(2) }})</span>
+                  <span class="text-gray-400">(上月 ¥{{ settingsStore.formatAmount(monthCompare.expense.mom.compare) }})</span>
                 </div>
               </div>
 
               <!-- 支出同比 -->
               <div class="text-center p-3 bg-gray-50 rounded-lg">
                 <div class="text-xs text-gray-500 mb-1">支出同比</div>
-                <div class="text-lg font-bold">¥{{ monthCompare.expense.yoy.current.toFixed(2) }}</div>
+                <div class="text-lg font-bold">¥{{ settingsStore.formatAmount(monthCompare.expense.yoy.current) }}</div>
                 <div class="text-xs mt-1"
                   :class="monthCompare.expense.yoy.diff >= 0 ? 'text-red-500' : 'text-green-500'"
                 >
                   {{ monthCompare.expense.yoy.diff >= 0 ? '↑' : '↓' }}
                   {{ Math.abs(monthCompare.expense.yoy.diffPercent * 100).toFixed(1) }}%
-                  <span class="text-gray-400">(去年 ¥{{ monthCompare.expense.yoy.compare.toFixed(2) }})</span>
+                  <span class="text-gray-400">(去年 ¥{{ settingsStore.formatAmount(monthCompare.expense.yoy.compare) }})</span>
                 </div>
               </div>
 
               <!-- 结余环比 -->
               <div class="text-center p-3 bg-gray-50 rounded-lg">
                 <div class="text-xs text-gray-500 mb-1">结余环比</div>
-                <div class="text-lg font-bold">¥{{ monthCompare.balance.mom.current.toFixed(2) }}</div>
+                <div class="text-lg font-bold">¥{{ settingsStore.formatAmount(monthCompare.balance.mom.current) }}</div>
                 <div class="text-xs mt-1"
                   :class="monthCompare.balance.mom.diff >= 0 ? 'text-green-500' : 'text-red-500'"
                 >
                   {{ monthCompare.balance.mom.diff >= 0 ? '↑' : '↓' }}
                   {{ Math.abs(monthCompare.balance.mom.diffPercent * 100).toFixed(1) }}%
-                  <span class="text-gray-400">(上月 ¥{{ monthCompare.balance.mom.compare.toFixed(2) }})</span>
+                  <span class="text-gray-400">(上月 ¥{{ settingsStore.formatAmount(monthCompare.balance.mom.compare) }})</span>
                 </div>
               </div>
             </div>
@@ -231,7 +232,7 @@
                       :stroke-width="4"
                     />
                   </div>
-                  <div class="w-16 text-right">¥{{ item.currentAmount.toFixed(0) }}</div>
+                  <div class="w-16 text-right">¥{{ settingsStore.formatAmount(item.currentAmount) }}</div>
                   <div
                     class="w-16 text-right text-xs"
                     :class="item.diff >= 0 ? 'text-red-500' : 'text-green-500'"
@@ -315,7 +316,7 @@
                 <div class="flex items-center gap-2">
                   <span class="font-medium">{{ selectedDate }} {{ selectedDateWeekday }}</span>
                 </div>
-                <span class="text-sm text-red-500">支出: ¥{{ daySummary.expense.toFixed(2) }}</span>
+                <span class="text-sm text-red-500">支出: ¥{{ settingsStore.formatAmount(daySummary.expense) }}</span>
               </div>
             </template>
 
@@ -336,7 +337,7 @@
                 </div>
                 <div class="text-right">
                   <div :class="item.type === 'income' ? 'text-green-500' : 'text-red-500'">
-                    {{ item.type === 'income' ? '+' : '-' }}¥{{ item.amount.toFixed(2) }}
+                    {{ item.type === 'income' ? '+' : '-' }}¥{{ settingsStore.formatAmount(item.amount) }}
                   </div>
                 </div>
               </div>
@@ -355,7 +356,7 @@
                   <span class="font-medium">待报销</span>
                   <el-tag v-if="reimbursableList.length > 0" type="warning" size="small">{{ reimbursableList.length }}笔</el-tag>
                 </div>
-                <span class="text-sm font-bold text-warning">¥{{ reimbursement.reimbursable.toFixed(2) }}</span>
+                <span class="text-sm font-bold text-warning">¥{{ settingsStore.formatAmount(reimbursement.reimbursable) }}</span>
               </div>
             </template>
 
@@ -376,7 +377,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                   <div class="text-right">
-                    <div class="text-red-500">-¥{{ item.amount.toFixed(2) }}</div>
+                    <div class="text-red-500">-¥{{ settingsStore.formatAmount(item.amount) }}</div>
                   </div>
                   <el-button
                     link
@@ -463,6 +464,7 @@ import {
 import LedgerForm from './components/LedgerForm.vue'
 import AiChatFloat from '@/components/AiChatFloat.vue'
 import { streamAnalysis } from '@/services/ai'
+import { useSettingsStore } from '@/stores/settings'
 import StatCard from './components/StatCard.vue'
 
 dayjs.locale('zh-cn')
@@ -470,7 +472,13 @@ dayjs.locale('zh-cn')
 use([CanvasRenderer, BarChart, LineChart, PieChart, GridComponent, TooltipComponent, LegendComponent, TitleComponent])
 
 const ledgerStore = useLedgerStore()
-const selectedMonth = ref(dayjs().format('YYYY-MM'))
+const settingsStore = useSettingsStore()
+
+const selectedMonth = ref(
+  settingsStore.defaultMonth === 'last'
+    ? dayjs().subtract(1, 'month').format('YYYY-MM')
+    : dayjs().format('YYYY-MM')
+)
 const selectedDate = ref(dayjs().format('YYYY-MM-DD'))
 const ledgerVisible = ref(false)
 const editingId = ref('')
@@ -553,28 +561,28 @@ const statCards = computed(() => [
   {
     title: '总支出',
     amount: summary.value.totalExpense,
-    subtitle: `总收入 ¥${summary.value.totalIncome.toFixed(2)}`,
+    subtitle: `总收入 ¥${settingsStore.formatAmount(summary.value.totalIncome)}`,
     type: 'expense' as const,
     dotColor: '#f56c6c',
   },
   {
     title: '剩余预算',
     amount: 3000 - summary.value.totalExpense,
-    subtitle: `总预算 ¥3,000.00\n剩余日均 ¥${((3000 - summary.value.totalExpense) / dayjs(selectedMonth.value).daysInMonth()).toFixed(2)}`,
+    subtitle: `总预算 ¥3,000.00\n剩余日均 ¥${settingsStore.formatAmount((3000 - summary.value.totalExpense) / dayjs(selectedMonth.value).daysInMonth())}`,
     type: 'budget' as const,
     dotColor: '#67c23a',
   },
   {
     title: '待报销',
     amount: reimbursement.value.reimbursable,
-    subtitle: `已报销 ¥${reimbursement.value.reimbursed.toFixed(2)}\n报销入账 ¥${reimbursement.value.reimbursed.toFixed(2)}`,
+    subtitle: `已报销 ¥${settingsStore.formatAmount(reimbursement.value.reimbursed)}\n报销入账 ¥${settingsStore.formatAmount(reimbursement.value.reimbursed)}`,
     type: 'info' as const,
     dotColor: '#409eff',
   },
   {
     title: '净资产',
     amount: summary.value.balance,
-    subtitle: `总资产 ¥${summary.value.totalIncome.toFixed(2)}\n总负债 ¥${summary.value.totalExpense.toFixed(2)}`,
+    subtitle: `总资产 ¥${settingsStore.formatAmount(summary.value.totalIncome)}\n总负债 ¥${settingsStore.formatAmount(summary.value.totalExpense)}`,
     type: 'balance' as const,
     dotColor: '#e6a23c',
   },
@@ -727,7 +735,7 @@ const donutOption = computed(() => {
         left: 'center',
         top: '52%',
         style: {
-          text: `¥${summary.value.totalExpense.toFixed(2)}`,
+          text: `¥${settingsStore.formatAmount(summary.value.totalExpense)}`,
           textAlign: 'center',
           fill: '#333',
           fontSize: 14,
@@ -775,7 +783,9 @@ function handleLedgerSubmit(data: any) {
     ledgerStore.add(data)
     ElMessage.success('记账成功')
   }
-  ledgerVisible.value = false
+  if (settingsStore.autoCloseLedger) {
+    ledgerVisible.value = false
+  }
   editingId.value = ''
   editingData.value = undefined
 }

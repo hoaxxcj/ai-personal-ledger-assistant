@@ -8,7 +8,7 @@
       <div class="flex-1">
         <div class="text-xs text-gray-500 mb-1">{{ title }}</div>
         <div class="text-2xl font-bold text-gray-800 mb-2">
-          ¥{{ Math.abs(amount).toFixed(2) }}
+          ¥{{ formatter ? formatter(Math.abs(amount)) : Math.abs(amount).toFixed(2) }}
         </div>
         <div class="text-[10px] text-gray-400 leading-relaxed whitespace-pre-line">
           {{ subtitle }}
@@ -25,5 +25,6 @@ defineProps<{
   subtitle: string
   type: string
   dotColor: string
+  formatter?: (n: number) => string
 }>()
 </script>

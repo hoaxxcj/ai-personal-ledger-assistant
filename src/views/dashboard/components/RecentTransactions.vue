@@ -12,7 +12,7 @@
     <el-table-column prop="amount" label="金额" width="120" align="right">
       <template #default="{ row }">
         <span :class="row.type === 'income' ? 'text-success' : 'text-danger'">
-          {{ row.type === 'income' ? '+' : '-' }}¥{{ row.amount.toFixed(2) }}
+          {{ row.type === 'income' ? '+' : '-' }}¥{{ settingsStore.formatAmount(row.amount) }}
         </span>
       </template>
     </el-table-column>
@@ -20,6 +20,10 @@
 </template>
 
 <script setup lang="ts">
+import { useSettingsStore } from '@/stores/settings'
+
+const settingsStore = useSettingsStore()
+
 const transactions = [
   { date: '2026-05-19', category: '餐饮', type: 'expense', note: '午餐', amount: 35.0 },
   { date: '2026-05-18', category: '交通', type: 'expense', note: '地铁', amount: 6.0 },
