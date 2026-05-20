@@ -123,3 +123,98 @@ export function getNetAssetTrend(month?: string) {
   }
   return result
 }
+
+// ===== 报销相关 =====
+
+export function getReimbursementSummary(month?: string) {
+  const targetMonth = month || dayjs().format('YYYY-MM')
+  const list = getTransactions().filter(
+    (t) => t.date.startsWith(targetMonth) && t.type === 'expense'
+  )
+  const reimbursable = list
+    .filter((t) => t.reimbursement === 'reimbursable')
+    .reduce((s, t) => s + t.amount, 0)
+  const reimbursed = list
+    .filter((t) => t.reimbursement === 'reimbursed')
+    .reduce((s, t) => s + t.amount, 0)
+  return { reimbursable, reimbursed }
+}
+
+export function getReimbursableList(month?: string) {
+  const targetMonth = month || dayjs().format('YYYY-MM')
+  return getTransactions()
+    .filter(
+      (t) =>
+        t.date.startsWith(targetMonth) &&
+        t.type === 'expense' &&
+        t.reimbursement === 'reimbursable'
+    )
+    .sort((a, b) => b.date.localeCompare(a.date))
+}
+
+// ===== 同环比分析 =====
+
+export interface CompareResult {
+  current: number
+  compare: number
+  diff: number
+  diffPercent: number
+}
+
+function calcCompare(current: number, compare: number): CompareResult {
+  const diff = current - compare
+  return {
+    current,
+    compare,
+    diff,
+    diffPercent: compare !== 0 ? diff / compare : 0,
+  }
+}
+
+export function getMonthCompare(month?: string) {
+  const targetMonth = month || dayjs().format('YYYY-MM')
+  const current = buildBillSummary(targetMonth)
+
+  // 环比：上月
+  const prevMonthStr = dayjs(targetMonth + '-01').subtract(1, 'month').format('YYYY-MM')
+  const prev = buildBillSummary(prevMonthStr)
+
+  // 同比：去年同期
+  const yoyMonthStr = dayjs(targetMonth + '-01').subtract(1, 'year').format('YYYY-MM')
+  const yoy = buildBillSummary(yoyMonthStr)
+
+  return {
+    income: {
+      mom: calcCompare(current.totalIncome, prev.totalIncome),
+      yoy: calcCompare(current.totalIncome, yoy.totalIncome),
+    },
+    expense: {
+      mom: calcCompare(current.totalExpense, prev.totalExpense),
+      yoy: calcCompare(current.totalExpense, yoy.totalExpense),
+    },
+    balance: {
+      mom: calcCompare(current.balance, prev.balance),
+      yoy: calcCompare(current.balance, yoy.balance),
+    },
+  }
+}
+
+export function getCategoryCompare(month?: string) {
+  const targetMonth = month || dayjs().format('YYYY-MM')
+  const currentDetail = getCategoryDetail(targetMonth)
+  const prevMonthStr = dayjs(targetMonth + '-01').subtract(1, 'month').format('YYYY-MM')
+  const prevDetail = getCategoryDetail(prevMonthStr)
+
+  return currentDetail.map((c) => {
+    const prev = prevDetail.find((p) => p.category === c.category)
+    return {
+      category: c.category,
+      currentAmount: c.amount,
+      currentPercent: c.percentage,
+      prevAmount: prev?.amount || 0,
+      prevPercent: prev?.percentage || 0,
+      diff: prev ? c.amount - prev.amount : c.amount,
+      diffPercent: prev && prev.amount > 0 ? (c.amount - prev.amount) / prev.amount : 0,
+    }
+  })
+}
