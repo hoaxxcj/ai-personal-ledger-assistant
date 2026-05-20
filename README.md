@@ -1,4 +1,4 @@
-# AI 个人记账与消费分析助手
+# 第五组：AI 个人记账与消费分析助手
 
 基于 Vue 3 + Vite + TypeScript 的智能记账应用，数据完全本地存储，AI 分析通过 DeepSeek API 实现。
 
