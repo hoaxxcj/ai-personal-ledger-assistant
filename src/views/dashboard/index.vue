@@ -8,7 +8,7 @@
       </div>
       <div class="text-xl font-bold">账本</div>
       <div class="flex items-center gap-4">
-        <el-button text :icon="Search">搜索账单</el-button>
+        <el-button text :icon="Search" @click="searchVisible = true">搜索账单</el-button>
         <el-button text :icon="Calendar">按月统计</el-button>
       </div>
     </div>
@@ -265,7 +265,19 @@
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <el-icon class="text-primary"><Calendar /></el-icon>
-                  <span class="font-bold">{{ selectedYear }}年{{ selectedMonthNum }}月</span>
+                  <el-popover placement="bottom" :width="220" trigger="click" v-model:visible="yearPickerVisible">
+                    <template #reference>
+                      <span class="font-bold cursor-pointer hover:text-primary">{{ selectedYear }}年</span>
+                    </template>
+                    <el-date-picker
+                      v-model="tempYear"
+                      type="year"
+                      value-format="YYYY"
+                      @change="onYearChange"
+                      class="w-full"
+                    />
+                  </el-popover>
+                  <span class="font-bold">{{ selectedMonthNum }}月</span>
                 </div>
                 <div class="flex gap-2">
                   <el-button circle size="small" @click="prevMonth">
@@ -419,11 +431,58 @@
     </el-dialog>
 
     <ai-chat-float />
+
+    <!-- 搜索账单弹窗 -->
+    <el-dialog v-model="searchVisible" title="搜索账单" width="800px">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <el-radio-group v-model="searchForm.type" size="small">
+          <el-radio-button label="">全部</el-radio-button>
+          <el-radio-button label="expense">支出</el-radio-button>
+          <el-radio-button label="income">收入</el-radio-button>
+        </el-radio-group>
+        <el-select v-model="searchForm.category" placeholder="选择分类" clearable size="small" style="width: 120px">
+          <el-option v-for="cat in ledgerStore.categories" :key="cat.id" :label="cat.name" :value="cat.id" />
+        </el-select>
+        <el-date-picker
+          v-model="searchForm.dateRange"
+          type="daterange"
+          value-format="YYYY-MM-DD"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          size="small"
+        />
+        <el-input v-model="searchForm.keyword" placeholder="搜索备注" clearable size="small" style="width: 160px" />
+        <el-button type="primary" size="small" @click="handleSearch">查询</el-button>
+      </div>
+
+      <el-table :data="searchResults" max-height="400" size="small">
+        <el-table-column prop="date" label="日期" width="110" sortable />
+        <el-table-column prop="type" label="类型" width="70">
+          <template #default="{ row }">
+            <el-tag :type="row.type === 'income' ? 'success' : 'danger'" size="small">
+              {{ row.type === 'income' ? '收入' : '支出' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="category" label="分类" width="100" />
+        <el-table-column prop="amount" label="金额" width="110" align="right">
+          <template #default="{ row }">
+            <span :class="row.type === 'income' ? 'text-green-500' : 'text-red-500'">
+              {{ row.type === 'income' ? '+' : '-' }}¥{{ settingsStore.formatAmount(row.amount) }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="note" label="备注" show-overflow-tooltip />
+      </el-table>
+
+      <div v-if="searchResults.length === 0" class="text-center text-gray-400 py-8">暂无符合条件的数据</div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart, LineChart, PieChart } from 'echarts/charts'
@@ -485,6 +544,51 @@ const editingId = ref('')
 const editingData = ref()
 const aiLoading = ref(false)
 const aiResult = ref('')
+
+const yearPickerVisible = ref(false)
+const tempYear = ref(dayjs().format('YYYY'))
+
+function onYearChange(val: string) {
+  if (!val) return
+  selectedMonth.value = `${val}-${selectedMonthNum.value}`
+  selectedDate.value = selectedMonth.value + '-01'
+  yearPickerVisible.value = false
+}
+
+const searchVisible = ref(false)
+const searchForm = reactive({
+  type: '' as '' | 'expense' | 'income',
+  category: '',
+  dateRange: [] as string[],
+  keyword: '',
+})
+
+const searchResults = computed(() => {
+  void ledgerStore.transactions.length
+  let list = [...ledgerStore.transactions].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id))
+  if (searchForm.type) {
+    list = list.filter((t) => t.type === searchForm.type)
+  }
+  if (searchForm.category) {
+    list = list.filter((t) => t.category === searchForm.category)
+  }
+  if (searchForm.dateRange?.length === 2) {
+    list = list.filter((t) => t.date >= searchForm.dateRange[0] && t.date <= searchForm.dateRange[1])
+  }
+  if (searchForm.keyword) {
+    const kw = searchForm.keyword.toLowerCase()
+    list = list.filter((t) => t.note?.toLowerCase().includes(kw) || t.category.toLowerCase().includes(kw))
+  }
+  return list
+})
+
+function handleSearch() {
+  if (searchResults.value.length === 0) {
+    ElMessage.info('未找到符合条件的数据')
+  } else {
+    ElMessage.success(`查询完成，共 ${searchResults.value.length} 条记录`)
+  }
+}
 
 const selectedYear = computed(() => selectedMonth.value.split('-')[0])
 const selectedMonthNum = computed(() => selectedMonth.value.split('-')[1])
@@ -680,7 +784,7 @@ const barOption = computed(() => ({
     data: dailyData.value.map((d) => d.date),
     axisLine: { show: false },
     axisTick: { show: false },
-    axisLabel: { interval: 4, fontSize: 10, color: '#999' },
+    axisLabel: { interval: 0, fontSize: 10, color: '#999', rotate: 45 },
   },
   yAxis: {
     type: 'value',
@@ -754,7 +858,7 @@ const assetOption = computed(() => ({
     data: assetTrend.value.map((d) => d.date),
     axisLine: { show: false },
     axisTick: { show: false },
-    axisLabel: { interval: 4, fontSize: 10, color: '#999' },
+    axisLabel: { interval: 0, fontSize: 10, color: '#999', rotate: 45 },
   },
   yAxis: {
     type: 'value',
