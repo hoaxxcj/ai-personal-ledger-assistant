@@ -13,7 +13,31 @@ const router = createRouter({
           path: 'dashboard',
           name: 'Dashboard',
           component: () => import('@/views/dashboard/index.vue'),
-          meta: { title: '首页概览' },
+          meta: { title: '账本' },
+        },
+        {
+          path: 'assets',
+          name: 'Assets',
+          component: () => import('@/views/dashboard/index.vue'),
+          meta: { title: '资产' },
+        },
+        {
+          path: 'savings',
+          name: 'Savings',
+          component: () => import('@/views/dashboard/index.vue'),
+          meta: { title: '存钱' },
+        },
+        {
+          path: 'stats',
+          name: 'Stats',
+          component: () => import('@/views/dashboard/index.vue'),
+          meta: { title: '统计' },
+        },
+        {
+          path: 'settings',
+          name: 'Settings',
+          component: () => import('@/views/settings/index.vue'),
+          meta: { title: '设置' },
         },
       ],
     },
@@ -21,7 +45,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  document.title = `${to.meta.title as string || '首页'} - AI记账助手`
+  document.title = `${to.meta.title as string || '账本'} - AI记账助手`
 })
 
 export default router

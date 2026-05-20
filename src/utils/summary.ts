@@ -47,14 +47,15 @@ export function buildBillSummary(month?: string): BillSummary {
   }
 }
 
-export function getLast7DaysExpense(): { date: string; amount: number }[] {
-  const result: { date: string; amount: number }[] = []
-  for (let i = 6; i >= 0; i--) {
-    const date = dayjs().subtract(i, 'day').format('YYYY-MM-DD')
-    const amount = getTransactions()
-      .filter((t) => t.date === date && t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0)
-    result.push({ date: dayjs(date).format('MM-DD'), amount })
+export function getMonthDailyData(month: string): { date: string; expense: number; income: number }[] {
+  const daysInMonth = dayjs(month).daysInMonth()
+  const result: { date: string; expense: number; income: number }[] = []
+  for (let i = 1; i <= daysInMonth; i++) {
+    const date = `${month}-${String(i).padStart(2, '0')}`
+    const dayTrans = getTransactions().filter((t) => t.date === date)
+    const expense = dayTrans.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+    const income = dayTrans.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+    result.push({ date: String(i), expense, income })
   }
   return result
 }
@@ -71,4 +72,54 @@ export function getCategoryPieData(month?: string) {
   return Object.entries(map)
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value)
+}
+
+export function getCategoryDetail(month?: string) {
+  const targetMonth = month || dayjs().format('YYYY-MM')
+  const expenseList = getTransactions().filter(
+    (t) => t.date.startsWith(targetMonth) && t.type === 'expense'
+  )
+  const total = expenseList.reduce((s, t) => s + t.amount, 0)
+  const map: Record<string, { amount: number; count: number }> = {}
+  expenseList.forEach((t) => {
+    if (!map[t.category]) map[t.category] = { amount: 0, count: 0 }
+    map[t.category].amount += t.amount
+    map[t.category].count += 1
+  })
+  return Object.entries(map)
+    .map(([category, data]) => ({
+      category,
+      amount: data.amount,
+      count: data.count,
+      percentage: total > 0 ? data.amount / total : 0,
+    }))
+    .sort((a, b) => b.amount - a.amount)
+}
+
+export function getDayTransactions(date: string) {
+  return getTransactions()
+    .filter((t) => t.date === date)
+    .sort((a, b) => b.id.localeCompare(a.id))
+}
+
+export function getDaySummary(date: string) {
+  const list = getTransactions().filter((t) => t.date === date)
+  const expense = list.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const income = list.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  return { expense, income }
+}
+
+export function getNetAssetTrend(month?: string) {
+  const targetMonth = month || dayjs().format('YYYY-MM')
+  const daysInMonth = dayjs(targetMonth).daysInMonth()
+  let runningTotal = 0
+  const result: { date: string; asset: number }[] = []
+  for (let i = 1; i <= daysInMonth; i++) {
+    const date = `${targetMonth}-${String(i).padStart(2, '0')}`
+    const dayTrans = getTransactions().filter((t) => t.date === date)
+    const dayNet = dayTrans.reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0)
+    runningTotal += dayNet
+    result.push({ date: String(i), asset: runningTotal })
+  }
+  return result
 }
