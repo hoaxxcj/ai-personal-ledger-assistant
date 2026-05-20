@@ -20,7 +20,7 @@
 
     <!-- 内容区 -->
     <div class="flex-1 overflow-auto p-4">
-      <div class="space-y-4 max-w-5xl mx-auto">
+      <div class="space-y-4">
         <!-- 收支对比分析 -->
         <el-card shadow="hover" class="!rounded-xl">
           <template #header>
@@ -146,17 +146,24 @@
 
         <!-- AI 消费洞察 -->
         <el-card shadow="hover" class="!rounded-xl">
-          <template #header>AI 消费洞察</template>
-          <div class="space-y-3">
-            <el-alert
-              v-for="(insight, idx) in insights"
-              :key="idx"
-              :title="insight.title"
-              :type="insight.type"
-              :description="insight.description"
-              show-icon
-              :closable="false"
-            />
+          <template #header>
+            <div class="flex items-center justify-between">
+              <span>AI 消费洞察</span>
+              <el-tag v-if="aiResult" size="small" type="success">已分析</el-tag>
+              <el-tag v-else size="small" type="info">未分析</el-tag>
+            </div>
+          </template>
+          <div v-if="aiResult" class="space-y-4">
+            <div class="bg-gray-50 rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap">
+              {{ aiResult }}
+            </div>
+            <div class="h-64">
+              <v-chart class="h-full" :option="pieOption" autoresize />
+            </div>
+          </div>
+          <div v-else class="text-center py-8 text-gray-400">
+            <el-icon :size="48" class="mb-2"><TrendCharts /></el-icon>
+            <p class="text-sm">点击上方「分析账单」按钮，获取 AI 消费洞察</p>
           </div>
         </el-card>
       </div>
@@ -168,7 +175,7 @@
 import { ref, computed } from 'vue'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import { BarChart, LineChart } from 'echarts/charts'
+import { BarChart, LineChart, PieChart } from 'echarts/charts'
 import {
   GridComponent,
   TooltipComponent,
@@ -182,13 +189,15 @@ import dayjs from 'dayjs'
 import { useLedgerStore } from '@/stores/ledger'
 import {
   buildBillSummary,
+  getCategoryDetail,
+  getCategoryPieData,
   getMonthCompare,
   getCategoryCompare,
 } from '@/utils/summary'
 import { streamAnalysis } from '@/services/ai'
 import { useSettingsStore } from '@/stores/settings'
 
-use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, TitleComponent])
+use([CanvasRenderer, BarChart, LineChart, PieChart, GridComponent, TooltipComponent, LegendComponent, TitleComponent])
 
 const ledgerStore = useLedgerStore()
 const settingsStore = useSettingsStore()
@@ -258,44 +267,87 @@ async function handleAiAnalysis() {
   }
 }
 
-const barOption = ref({
-  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-  legend: { data: ['收入', '支出'] },
-  xAxis: { type: 'category', data: ['1月', '2月', '3月', '4月', '5月'] },
-  yAxis: { type: 'value' },
-  series: [
-    { name: '收入', type: 'bar', data: [11000, 11500, 12000, 11800, 12000] },
-    { name: '支出', type: 'bar', data: [4200, 3800, 5100, 3600, 3456] },
-  ],
+const recentMonths = computed(() =>
+  Array.from({ length: 6 }, (_, i) => dayjs().subtract(5 - i, 'month').format('YYYY-MM'))
+)
+
+const barOption = computed(() => {
+  void ledgerStore.transactions.length
+  const data = recentMonths.value.map((m) => {
+    const s = buildBillSummary(m)
+    return { month: dayjs(m + '-01').format('M月'), income: s.totalIncome, expense: s.totalExpense }
+  })
+  return {
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { data: ['收入', '支出'] },
+    grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
+    xAxis: { type: 'category', data: data.map((d) => d.month) },
+    yAxis: { type: 'value' },
+    series: [
+      { name: '收入', type: 'bar', data: data.map((d) => d.income), itemStyle: { color: '#67c23a' } },
+      { name: '支出', type: 'bar', data: data.map((d) => d.expense), itemStyle: { color: '#f56c6c' } },
+    ],
+  }
 })
 
-const lineOption = ref({
-  tooltip: { trigger: 'axis' },
-  legend: { data: ['餐饮', '交通', '购物'] },
-  xAxis: { type: 'category', data: ['1月', '2月', '3月', '4月', '5月'] },
-  yAxis: { type: 'value' },
-  series: [
-    { name: '餐饮', type: 'line', data: [1200, 1100, 1500, 1000, 1048] },
-    { name: '交通', type: 'line', data: [600, 580, 700, 550, 735] },
-    { name: '购物', type: 'line', data: [800, 600, 1200, 500, 580] },
-  ],
+const lineOption = computed(() => {
+  void ledgerStore.transactions.length
+  const months = recentMonths.value
+  // 汇总近6个月各分类总支出，取 Top 5
+  const catTotals: Record<string, number> = {}
+  months.forEach((m) => {
+    getCategoryDetail(m).forEach((d: { category: string; amount: number }) => {
+      catTotals[d.category] = (catTotals[d.category] || 0) + d.amount
+    })
+  })
+  const topCats = Object.entries(catTotals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([cat]) => cat)
+  const palette = ['#f56c6c', '#409eff', '#e6a23c', '#67c23a', '#ff6b9d']
+  const series = topCats.map((cat, idx) => ({
+    name: cat,
+    type: 'line' as const,
+    smooth: true,
+    data: months.map((m) => {
+      const detail = getCategoryDetail(m)
+      const item = detail.find((d) => d.category === cat)
+      return item ? item.amount : 0
+    }),
+    itemStyle: { color: palette[idx % palette.length] },
+  }))
+  return {
+    tooltip: { trigger: 'axis' },
+    legend: { data: topCats },
+    grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
+    xAxis: { type: 'category', data: months.map((m) => dayjs(m + '-01').format('M月')) },
+    yAxis: { type: 'value' },
+    series,
+  }
 })
 
-const insights = [
-  {
-    title: '餐饮支出偏高',
-    type: 'warning' as const,
-    description: '本月餐饮支出占总支出的 30%，建议适当减少外出就餐频率。',
-  },
-  {
-    title: '储蓄率良好',
-    type: 'success' as const,
-    description: '本月储蓄率达到 71%，继续保持！',
-  },
-  {
-    title: '建议优化',
-    type: 'info' as const,
-    description: '可将部分闲置资金投入低风险理财产品，提升资产增值效率。',
-  },
-]
+const pieOption = computed(() => {
+  void ledgerStore.transactions.length
+  const data = getCategoryPieData(selectedMonth.value)
+  return {
+    tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
+    legend: { type: 'scroll', orient: 'vertical', right: 10, top: 20, bottom: 20 },
+    series: [
+      {
+        name: '支出分类',
+        type: 'pie' as const,
+        radius: ['40%', '70%'],
+        center: ['40%', '50%'],
+        avoidLabelOverlap: false,
+        itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+        label: { show: false },
+        emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+        data: data.map((item: { name: string; value: number }) => ({
+          ...item,
+          itemStyle: { color: getCategoryColor(item.name) },
+        })),
+      },
+    ],
+  }
+})
 </script>
