@@ -33,6 +33,13 @@
       </div>
     </el-form-item>
 
+    <el-form-item v-if="form.type === 'expense'" label="报销属性">
+      <el-radio-group v-model="form.reimbursement" size="default">
+        <el-radio-button label="personal">自用</el-radio-button>
+        <el-radio-button label="reimbursable">非自用（待报销）</el-radio-button>
+      </el-radio-group>
+    </el-form-item>
+
     <el-form-item label="日期">
       <el-date-picker v-model="form.date" type="date" class="w-full" value-format="YYYY-MM-DD" />
     </el-form-item>
@@ -71,6 +78,7 @@ const form = reactive({
   type: 'expense' as 'income' | 'expense',
   amount: undefined as number | undefined,
   category: '',
+  reimbursement: 'personal' as 'personal' | 'reimbursable',
   date: dayjs().format('YYYY-MM-DD'),
   note: '',
 })
@@ -86,12 +94,14 @@ watch(
       form.type = val.type
       form.amount = val.amount
       form.category = val.category
+      form.reimbursement = val.reimbursement || 'personal'
       form.date = val.date
       form.note = val.note
     } else {
       form.type = 'expense'
       form.amount = undefined
       form.category = ''
+      form.reimbursement = 'personal'
       form.date = dayjs().format('YYYY-MM-DD')
       form.note = ''
     }
@@ -118,6 +128,7 @@ function handleSubmit() {
     type: form.type,
     amount: form.amount,
     category: form.category,
+    reimbursement: form.type === 'expense' ? form.reimbursement : undefined,
     date: form.date,
     note: form.note,
   })

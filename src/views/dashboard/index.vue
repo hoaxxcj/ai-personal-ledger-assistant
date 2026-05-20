@@ -151,6 +151,109 @@
               </div>
             </el-card>
           </div>
+
+          <!-- 同环比分析 -->
+          <el-card shadow="hover" class="!rounded-xl">
+            <template #header>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="w-2 h-2 rounded-full bg-primary"></div>
+                  <span class="font-medium">月度收支对比分析</span>
+                </div>
+                <el-button
+                  type="primary"
+                  size="small"
+                  :icon="MagicStick"
+                  :loading="aiLoading"
+                  @click="handleAiAnalysis"
+                >
+                  分析账单
+                </el-button>
+              </div>
+            </template>
+
+            <div class="grid grid-cols-3 gap-4 mb-4">
+              <!-- 支出环比 -->
+              <div class="text-center p-3 bg-gray-50 rounded-lg">
+                <div class="text-xs text-gray-500 mb-1">支出环比</div>
+                <div class="text-lg font-bold">¥{{ monthCompare.expense.mom.current.toFixed(2) }}</div>
+                <div class="text-xs mt-1"
+                  :class="monthCompare.expense.mom.diff >= 0 ? 'text-red-500' : 'text-green-500'"
+                >
+                  {{ monthCompare.expense.mom.diff >= 0 ? '↑' : '↓' }}
+                  {{ Math.abs(monthCompare.expense.mom.diffPercent * 100).toFixed(1) }}%
+                  <span class="text-gray-400">(上月 ¥{{ monthCompare.expense.mom.compare.toFixed(2) }})</span>
+                </div>
+              </div>
+
+              <!-- 支出同比 -->
+              <div class="text-center p-3 bg-gray-50 rounded-lg">
+                <div class="text-xs text-gray-500 mb-1">支出同比</div>
+                <div class="text-lg font-bold">¥{{ monthCompare.expense.yoy.current.toFixed(2) }}</div>
+                <div class="text-xs mt-1"
+                  :class="monthCompare.expense.yoy.diff >= 0 ? 'text-red-500' : 'text-green-500'"
+                >
+                  {{ monthCompare.expense.yoy.diff >= 0 ? '↑' : '↓' }}
+                  {{ Math.abs(monthCompare.expense.yoy.diffPercent * 100).toFixed(1) }}%
+                  <span class="text-gray-400">(去年 ¥{{ monthCompare.expense.yoy.compare.toFixed(2) }})</span>
+                </div>
+              </div>
+
+              <!-- 结余环比 -->
+              <div class="text-center p-3 bg-gray-50 rounded-lg">
+                <div class="text-xs text-gray-500 mb-1">结余环比</div>
+                <div class="text-lg font-bold">¥{{ monthCompare.balance.mom.current.toFixed(2) }}</div>
+                <div class="text-xs mt-1"
+                  :class="monthCompare.balance.mom.diff >= 0 ? 'text-green-500' : 'text-red-500'"
+                >
+                  {{ monthCompare.balance.mom.diff >= 0 ? '↑' : '↓' }}
+                  {{ Math.abs(monthCompare.balance.mom.diffPercent * 100).toFixed(1) }}%
+                  <span class="text-gray-400">(上月 ¥{{ monthCompare.balance.mom.compare.toFixed(2) }})</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 分类费用同步分析 -->
+            <div v-if="categoryCompare.length > 0">
+              <div class="text-xs text-gray-500 mb-2">分类费用环比变化</div>
+              <div class="space-y-2 max-h-48 overflow-y-auto">
+                <div
+                  v-for="item in categoryCompare.slice(0, 6)"
+                  :key="item.category"
+                  class="flex items-center gap-3 text-sm"
+                >
+                  <div class="w-20 truncate">{{ item.category }}</div>
+                  <div class="flex-1">
+                    <el-progress
+                      :percentage="Math.round(item.currentPercent * 100)"
+                      :color="getCategoryColor(item.category)"
+                      :show-text="false"
+                      :stroke-width="4"
+                    />
+                  </div>
+                  <div class="w-16 text-right">¥{{ item.currentAmount.toFixed(0) }}</div>
+                  <div
+                    class="w-16 text-right text-xs"
+                    :class="item.diff >= 0 ? 'text-red-500' : 'text-green-500'"
+                  >
+                    {{ item.diff >= 0 ? '+' : '' }}{{ item.diff.toFixed(0) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- AI 分析结果 -->
+            <div
+              v-if="aiResult"
+              class="bg-gray-50 rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap mt-4"
+            >
+              {{ aiResult }}
+            </div>
+            <div v-else-if="aiLoading" class="text-center py-4 text-gray-400">
+              <el-icon class="is-loading"><Loading /></el-icon>
+              <span class="ml-2">AI 正在分析...</span>
+            </div>
+          </el-card>
         </div>
 
         <!-- 右侧日历+明细 -->
@@ -242,6 +345,54 @@
               </div>
             </div>
           </el-card>
+
+          <!-- 报销板块 -->
+          <el-card shadow="hover" class="!rounded-xl">
+            <template #header>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <el-icon class="text-primary"><Money /></el-icon>
+                  <span class="font-medium">待报销</span>
+                  <el-tag v-if="reimbursableList.length > 0" type="warning" size="small">{{ reimbursableList.length }}笔</el-tag>
+                </div>
+                <span class="text-sm font-bold text-warning">¥{{ reimbursement.reimbursable.toFixed(2) }}</span>
+              </div>
+            </template>
+
+            <div class="space-y-3 max-h-[240px] overflow-y-auto">
+              <div
+                v-for="item in reimbursableList"
+                :key="item.id"
+                class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
+              >
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+                    <el-icon><component :is="getCategoryIcon(item.category)" /></el-icon>
+                  </div>
+                  <div>
+                    <div class="text-sm">{{ item.note || item.category }}</div>
+                    <div class="text-xs text-gray-400">{{ item.date }}</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="text-right">
+                    <div class="text-red-500">-¥{{ item.amount.toFixed(2) }}</div>
+                  </div>
+                  <el-button
+                    link
+                    type="success"
+                    size="small"
+                    @click="markReimbursed(item.id)"
+                  >
+                    已报销
+                  </el-button>
+                </div>
+              </div>
+              <div v-if="reimbursableList.length === 0" class="text-center text-gray-400 py-4">
+                暂无待报销记录
+              </div>
+            </div>
+          </el-card>
         </div>
       </div>
     </div>
@@ -290,6 +441,7 @@ import {
   ArrowRight,
   Document,
   DataLine,
+  Money,
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import dayjs from 'dayjs'
@@ -303,9 +455,14 @@ import {
   getDayTransactions,
   getDaySummary,
   getNetAssetTrend,
+  getReimbursementSummary,
+  getReimbursableList,
+  getMonthCompare,
+  getCategoryCompare,
 } from '@/utils/summary'
 import LedgerForm from './components/LedgerForm.vue'
 import AiChatFloat from '@/components/AiChatFloat.vue'
+import { streamAnalysis } from '@/services/ai'
 import StatCard from './components/StatCard.vue'
 
 dayjs.locale('zh-cn')
@@ -318,6 +475,8 @@ const selectedDate = ref(dayjs().format('YYYY-MM-DD'))
 const ledgerVisible = ref(false)
 const editingId = ref('')
 const editingData = ref()
+const aiLoading = ref(false)
+const aiResult = ref('')
 
 const selectedYear = computed(() => selectedMonth.value.split('-')[0])
 const selectedMonthNum = computed(() => selectedMonth.value.split('-')[1])
@@ -370,6 +529,26 @@ const selectedDateWeekday = computed(() => {
   return weekdays[dayjs(selectedDate.value).day()]
 })
 
+const reimbursement = computed(() => {
+  void ledgerStore.transactions.length
+  return getReimbursementSummary(selectedMonth.value)
+})
+
+const reimbursableList = computed(() => {
+  void ledgerStore.transactions.length
+  return getReimbursableList(selectedMonth.value)
+})
+
+const monthCompare = computed(() => {
+  void ledgerStore.transactions.length
+  return getMonthCompare(selectedMonth.value)
+})
+
+const categoryCompare = computed(() => {
+  void ledgerStore.transactions.length
+  return getCategoryCompare(selectedMonth.value)
+})
+
 const statCards = computed(() => [
   {
     title: '总支出',
@@ -387,8 +566,8 @@ const statCards = computed(() => [
   },
   {
     title: '待报销',
-    amount: 0,
-    subtitle: '已报销 ¥0.00\n报销入账 ¥0.00',
+    amount: reimbursement.value.reimbursable,
+    subtitle: `已报销 ¥${reimbursement.value.reimbursed.toFixed(2)}\n报销入账 ¥${reimbursement.value.reimbursed.toFixed(2)}`,
     type: 'info' as const,
     dotColor: '#409eff',
   },
@@ -611,6 +790,33 @@ async function handleDelete(id: string) {
   await ElMessageBox.confirm('确定删除这条记录吗？', '提示', { type: 'warning' })
   ledgerStore.remove(id)
   ElMessage.success('已删除')
+}
+
+async function markReimbursed(id: string) {
+  await ElMessageBox.confirm('确认该笔支出已报销？', '提示', { type: 'info' })
+  ledgerStore.update(id, { reimbursement: 'reimbursed' })
+  ElMessage.success('已标记为已报销')
+}
+
+async function handleAiAnalysis() {
+  aiResult.value = ''
+  aiLoading.value = true
+  try {
+    const s = buildBillSummary(selectedMonth.value)
+    const stream = streamAnalysis(s)
+    for await (const chunk of stream) {
+      if (chunk.error) {
+        ElMessage.error(chunk.error)
+        break
+      }
+      if (chunk.done) break
+      aiResult.value += chunk.content
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || '分析失败')
+  } finally {
+    aiLoading.value = false
+  }
 }
 
 onMounted(() => {
