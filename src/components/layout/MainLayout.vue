@@ -44,8 +44,6 @@ const route = useRoute()
 
 const menuItems = [
   { path: '/', label: '账本', icon: 'Document' },
-  { path: '/assets', label: '资产', icon: 'Wallet' },
-  { path: '/savings', label: '存钱', icon: 'Coin' },
   { path: '/stats', label: '统计', icon: 'TrendCharts' },
   { path: '/settings', label: '设置', icon: 'Setting' },
 ]

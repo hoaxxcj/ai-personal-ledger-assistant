@@ -9,7 +9,18 @@
       <div class="text-xl font-bold">账本</div>
       <div class="flex items-center gap-4">
         <el-button text :icon="Search" @click="searchVisible = true">搜索账单</el-button>
-        <el-button text :icon="Calendar">按月统计</el-button>
+        <el-button
+          text
+          :icon="Calendar"
+          :type="viewMode === 'month' ? 'primary' : ''"
+          @click="viewMode = 'month'"
+        >按月统计</el-button>
+        <el-button
+          text
+          :icon="Calendar"
+          :type="viewMode === 'year' ? 'primary' : ''"
+          @click="viewMode = 'year'"
+        >按年统计</el-button>
       </div>
     </div>
 
@@ -73,7 +84,7 @@
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-warning"></div>
-                    <span class="font-medium">支出分类详情</span>
+                    <span class="font-medium">{{ pieChartType === 'expense' ? '支出' : '收入' }}分类详情</span>
                   </div>
                   <el-button text size="small">一级分类</el-button>
                 </div>
@@ -98,8 +109,16 @@
                 </div>
               </div>
               <div class="flex justify-center gap-6 mt-2">
-                <span class="text-sm text-gray-500 cursor-pointer hover:text-primary">支出</span>
-                <span class="text-sm text-gray-300">收入</span>
+                <span
+                  class="text-sm cursor-pointer"
+                  :class="pieChartType === 'expense' ? 'text-primary font-medium' : 'text-gray-300 hover:text-primary'"
+                  @click="pieChartType = 'expense'"
+                >支出</span>
+                <span
+                  class="text-sm cursor-pointer"
+                  :class="pieChartType === 'income' ? 'text-primary font-medium' : 'text-gray-300 hover:text-primary'"
+                  @click="pieChartType = 'income'"
+                >收入</span>
               </div>
             </el-card>
           </div>
@@ -183,7 +202,7 @@
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <div class="w-2 h-2 rounded-full bg-primary"></div>
-                  <span class="font-medium">月度收支对比分析</span>
+                  <span class="font-medium">{{ viewMode === 'year' ? '年度' : '月度' }}收支对比分析</span>
                 </div>
                 <el-button
                   type="primary"
@@ -198,42 +217,42 @@
             </template>
 
             <div class="grid grid-cols-3 gap-4 mb-4">
-              <!-- 支出环比 -->
+              <!-- 支出环比 / 年度支出 -->
               <div class="text-center p-3 bg-gray-50 rounded-lg">
-                <div class="text-xs text-gray-500 mb-1">支出环比</div>
-                <div class="text-lg font-bold">¥{{ settingsStore.formatAmount(monthCompare.expense.mom.current) }}</div>
+                <div class="text-xs text-gray-500 mb-1">{{ viewMode === 'year' ? '年度支出' : '支出环比' }}</div>
+                <div class="text-lg font-bold">¥{{ settingsStore.formatAmount(viewMode === 'year' ? monthCompare.expense.yoy.current : monthCompare.expense.mom.current) }}</div>
                 <div class="text-xs mt-1"
-                  :class="monthCompare.expense.mom.diff >= 0 ? 'text-red-500' : 'text-green-500'"
+                  :class="(viewMode === 'year' ? monthCompare.expense.yoy.diff : monthCompare.expense.mom.diff) >= 0 ? 'text-red-500' : 'text-green-500'"
                 >
-                  {{ monthCompare.expense.mom.diff >= 0 ? '↑' : '↓' }}
-                  {{ Math.abs(monthCompare.expense.mom.diffPercent * 100).toFixed(1) }}%
-                  <span class="text-gray-400">(上月 ¥{{ settingsStore.formatAmount(monthCompare.expense.mom.compare) }})</span>
+                  {{ (viewMode === 'year' ? monthCompare.expense.yoy.diff : monthCompare.expense.mom.diff) >= 0 ? '↑' : '↓' }}
+                  {{ Math.abs((viewMode === 'year' ? monthCompare.expense.yoy.diffPercent : monthCompare.expense.mom.diffPercent) * 100).toFixed(1) }}%
+                  <span class="text-gray-400">({{ viewMode === 'year' ? '去年' : '上月' }} ¥{{ settingsStore.formatAmount(viewMode === 'year' ? monthCompare.expense.yoy.compare : monthCompare.expense.mom.compare) }})</span>
                 </div>
               </div>
 
-              <!-- 支出同比 -->
+              <!-- 支出同比 / 年度收入 -->
               <div class="text-center p-3 bg-gray-50 rounded-lg">
-                <div class="text-xs text-gray-500 mb-1">支出同比</div>
-                <div class="text-lg font-bold">¥{{ settingsStore.formatAmount(monthCompare.expense.yoy.current) }}</div>
+                <div class="text-xs text-gray-500 mb-1">{{ viewMode === 'year' ? '年度收入' : '支出同比' }}</div>
+                <div class="text-lg font-bold">¥{{ settingsStore.formatAmount(viewMode === 'year' ? monthCompare.income.yoy.current : monthCompare.expense.yoy.current) }}</div>
                 <div class="text-xs mt-1"
-                  :class="monthCompare.expense.yoy.diff >= 0 ? 'text-red-500' : 'text-green-500'"
+                  :class="(viewMode === 'year' ? monthCompare.income.yoy.diff : monthCompare.expense.yoy.diff) >= 0 ? 'text-green-500' : 'text-red-500'"
                 >
-                  {{ monthCompare.expense.yoy.diff >= 0 ? '↑' : '↓' }}
-                  {{ Math.abs(monthCompare.expense.yoy.diffPercent * 100).toFixed(1) }}%
-                  <span class="text-gray-400">(去年 ¥{{ settingsStore.formatAmount(monthCompare.expense.yoy.compare) }})</span>
+                  {{ (viewMode === 'year' ? monthCompare.income.yoy.diff : monthCompare.expense.yoy.diff) >= 0 ? '↑' : '↓' }}
+                  {{ Math.abs((viewMode === 'year' ? monthCompare.income.yoy.diffPercent : monthCompare.expense.yoy.diffPercent) * 100).toFixed(1) }}%
+                  <span class="text-gray-400">({{ viewMode === 'year' ? '去年' : '去年' }} ¥{{ settingsStore.formatAmount(viewMode === 'year' ? monthCompare.income.yoy.compare : monthCompare.expense.yoy.compare) }})</span>
                 </div>
               </div>
 
-              <!-- 结余环比 -->
+              <!-- 结余环比 / 年度结余 -->
               <div class="text-center p-3 bg-gray-50 rounded-lg">
-                <div class="text-xs text-gray-500 mb-1">结余环比</div>
-                <div class="text-lg font-bold">¥{{ settingsStore.formatAmount(monthCompare.balance.mom.current) }}</div>
+                <div class="text-xs text-gray-500 mb-1">{{ viewMode === 'year' ? '年度结余' : '结余环比' }}</div>
+                <div class="text-lg font-bold">¥{{ settingsStore.formatAmount(viewMode === 'year' ? monthCompare.balance.yoy.current : monthCompare.balance.mom.current) }}</div>
                 <div class="text-xs mt-1"
-                  :class="monthCompare.balance.mom.diff >= 0 ? 'text-green-500' : 'text-red-500'"
+                  :class="(viewMode === 'year' ? monthCompare.balance.yoy.diff : monthCompare.balance.mom.diff) >= 0 ? 'text-green-500' : 'text-red-500'"
                 >
-                  {{ monthCompare.balance.mom.diff >= 0 ? '↑' : '↓' }}
-                  {{ Math.abs(monthCompare.balance.mom.diffPercent * 100).toFixed(1) }}%
-                  <span class="text-gray-400">(上月 ¥{{ settingsStore.formatAmount(monthCompare.balance.mom.compare) }})</span>
+                  {{ (viewMode === 'year' ? monthCompare.balance.yoy.diff : monthCompare.balance.mom.diff) >= 0 ? '↑' : '↓' }}
+                  {{ Math.abs((viewMode === 'year' ? monthCompare.balance.yoy.diffPercent : monthCompare.balance.mom.diffPercent) * 100).toFixed(1) }}%
+                  <span class="text-gray-400">({{ viewMode === 'year' ? '去年' : '上月' }} ¥{{ settingsStore.formatAmount(viewMode === 'year' ? monthCompare.balance.yoy.compare : monthCompare.balance.mom.compare) }})</span>
                 </div>
               </div>
             </div>
@@ -531,18 +550,26 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import { useLedgerStore } from '@/stores/ledger'
+import { getTransactions } from '@/utils/storage'
 import {
   buildBillSummary,
+  buildYearSummary,
   getMonthDailyData,
+  getYearMonthlyData,
   getCategoryPieData,
   getCategoryDetail,
   getDayTransactions,
   getDaySummary,
   getNetAssetTrend,
+  getYearNetAssetTrend,
   getReimbursementSummary,
   getReimbursableList,
   getMonthCompare,
   getCategoryCompare,
+  getYearReimbursementSummary,
+  getYearReimbursableList,
+  getYearCompare,
+  getYearCategoryCompare,
 } from '@/utils/summary'
 import LedgerForm from './components/LedgerForm.vue'
 import AiChatFloat from '@/components/AiChatFloat.vue'
@@ -571,6 +598,8 @@ const aiResult = ref('')
 
 const barChartType = ref<'expense' | 'income' | 'balance'>('expense')
 const assetChartType = ref<'asset' | 'totalAsset' | 'totalDebt'>('asset')
+const pieChartType = ref<'expense' | 'income'>('expense')
+const viewMode = ref<'month' | 'year'>('month')
 
 const yearPickerVisible = ref(false)
 const tempYear = ref(dayjs().format('YYYY'))
@@ -624,27 +653,61 @@ const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '�
 
 const summary = computed(() => {
   void ledgerStore.transactions.length
-  return buildBillSummary(selectedMonth.value)
+  return viewMode.value === 'year'
+    ? buildYearSummary(selectedYear.value)
+    : buildBillSummary(selectedMonth.value)
 })
 
 const dailyData = computed(() => {
   void ledgerStore.transactions.length
-  return getMonthDailyData(selectedMonth.value)
+  return viewMode.value === 'year'
+    ? getYearMonthlyData(selectedYear.value)
+    : getMonthDailyData(selectedMonth.value)
 })
 
 const pieData = computed(() => {
   void ledgerStore.transactions.length
-  return getCategoryPieData(selectedMonth.value)
+  const target = viewMode.value === 'year' ? selectedYear.value : selectedMonth.value
+  const list = getTransactions().filter(
+    (t) => t.date.startsWith(target) && t.type === pieChartType.value
+  )
+  const map: Record<string, number> = {}
+  list.forEach((t) => {
+    map[t.category] = (map[t.category] || 0) + t.amount
+  })
+  return Object.entries(map)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
 })
 
 const categoryDetail = computed(() => {
   void ledgerStore.transactions.length
-  return getCategoryDetail(selectedMonth.value)
+  const target = viewMode.value === 'year' ? selectedYear.value : selectedMonth.value
+  const list = getTransactions().filter(
+    (t) => t.date.startsWith(target) && t.type === pieChartType.value
+  )
+  const total = list.reduce((s, t) => s + t.amount, 0)
+  const map: Record<string, { amount: number; count: number }> = {}
+  list.forEach((t) => {
+    if (!map[t.category]) map[t.category] = { amount: 0, count: 0 }
+    map[t.category].amount += t.amount
+    map[t.category].count += 1
+  })
+  return Object.entries(map)
+    .map(([category, data]) => ({
+      category,
+      amount: data.amount,
+      count: data.count,
+      percentage: total > 0 ? data.amount / total : 0,
+    }))
+    .sort((a, b) => b.amount - a.amount)
 })
 
 const assetTrend = computed(() => {
   void ledgerStore.transactions.length
-  return getNetAssetTrend(selectedMonth.value)
+  return viewMode.value === 'year'
+    ? getYearNetAssetTrend(selectedYear.value)
+    : getNetAssetTrend(selectedMonth.value)
 })
 
 const dayTransactions = computed(() => {
@@ -657,10 +720,20 @@ const daySummary = computed(() => {
   return getDaySummary(selectedDate.value)
 })
 
-const avgDailyExpense = computed(() => {
-  const total = dailyData.value.reduce((s, d) => s + d.expense, 0)
-  const days = dailyData.value.filter((d) => d.expense > 0).length
-  return days > 0 ? total / days : 0
+const avgDailyBar = computed(() => {
+  const type = barChartType.value
+  const divisor = viewMode.value === 'year' ? 12 : dailyData.value.length
+  if (type === 'expense') {
+    const total = dailyData.value.reduce((s, d) => s + d.expense, 0)
+    return total / divisor || 0
+  }
+  if (type === 'income') {
+    const total = dailyData.value.reduce((s, d) => s + d.income, 0)
+    return total / divisor || 0
+  }
+  // balance
+  const total = dailyData.value.reduce((s, d) => s + (d.income - d.expense), 0)
+  return total / divisor || 0
 })
 
 const selectedDateWeekday = computed(() => {
@@ -670,36 +743,48 @@ const selectedDateWeekday = computed(() => {
 
 const reimbursement = computed(() => {
   void ledgerStore.transactions.length
-  return getReimbursementSummary(selectedMonth.value)
+  return viewMode.value === 'year'
+    ? getYearReimbursementSummary(selectedYear.value)
+    : getReimbursementSummary(selectedMonth.value)
 })
 
 const reimbursableList = computed(() => {
   void ledgerStore.transactions.length
-  return getReimbursableList(selectedMonth.value)
+  return viewMode.value === 'year'
+    ? getYearReimbursableList(selectedYear.value)
+    : getReimbursableList(selectedMonth.value)
 })
 
 const monthCompare = computed(() => {
   void ledgerStore.transactions.length
-  return getMonthCompare(selectedMonth.value)
+  return viewMode.value === 'year'
+    ? getYearCompare(selectedYear.value)
+    : getMonthCompare(selectedMonth.value)
 })
 
 const categoryCompare = computed(() => {
   void ledgerStore.transactions.length
-  return getCategoryCompare(selectedMonth.value)
+  return viewMode.value === 'year'
+    ? getYearCategoryCompare(selectedYear.value)
+    : getCategoryCompare(selectedMonth.value)
 })
 
 const statCards = computed(() => [
   {
-    title: '总支出',
+    title: viewMode.value === 'year' ? '年度总支出' : '总支出',
     amount: summary.value.totalExpense,
-    subtitle: `总收入 ¥${settingsStore.formatAmount(summary.value.totalIncome)}`,
+    subtitle: viewMode.value === 'year'
+      ? `年度总收入 ¥${settingsStore.formatAmount(summary.value.totalIncome)}`
+      : `总收入 ¥${settingsStore.formatAmount(summary.value.totalIncome)}`,
     type: 'expense' as const,
     dotColor: '#f56c6c',
   },
   {
-    title: '剩余预算',
-    amount: 3000 - summary.value.totalExpense,
-    subtitle: `总预算 ¥3,000.00\n剩余日均 ¥${settingsStore.formatAmount((3000 - summary.value.totalExpense) / dayjs(selectedMonth.value).daysInMonth())}`,
+    title: viewMode.value === 'year' ? '年度结余' : '剩余预算',
+    amount: viewMode.value === 'year' ? summary.value.balance : 3000 - summary.value.totalExpense,
+    subtitle: viewMode.value === 'year'
+      ? `月均支出 ¥${settingsStore.formatAmount((summary.value as any).monthlyAverage || 0)}`
+      : `总预算 ¥3,000.00\n剩余日均 ¥${settingsStore.formatAmount((3000 - summary.value.totalExpense) / dayjs(selectedMonth.value).daysInMonth())}`,
     type: 'budget' as const,
     dotColor: '#67c23a',
   },
@@ -711,7 +796,7 @@ const statCards = computed(() => [
     dotColor: '#409eff',
   },
   {
-    title: '净资产',
+    title: viewMode.value === 'year' ? '年度净资产' : '净资产',
     amount: summary.value.balance,
     subtitle: `总资产 ¥${settingsStore.formatAmount(summary.value.totalIncome)}\n总负债 ¥${settingsStore.formatAmount(summary.value.totalExpense)}`,
     type: 'balance' as const,
@@ -815,7 +900,9 @@ const barOption = computed(() => {
     grid: { left: '3%', right: '3%', bottom: '3%', top: '10%', containLabel: true },
     xAxis: {
       type: 'category',
-      data: dailyData.value.map((d) => d.date),
+      data: viewMode.value === 'year'
+        ? dailyData.value.map((d) => (d as any).month)
+        : dailyData.value.map((d) => d.date),
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: { interval: 0, fontSize: 10, color: '#999' },
@@ -843,16 +930,18 @@ const barOption = computed(() => {
 })
 
 const donutOption = computed(() => {
-  const colors = pieData.value.map((_, i) => {
-    const palette = ['#f56c6c', '#e6a23c', '#409eff', '#67c23a', '#909399', '#ff6b9d', '#c0c4cc']
-    return palette[i % palette.length]
-  })
+  const type = pieChartType.value
+  const palette = type === 'expense'
+    ? ['#f56c6c', '#e6a23c', '#409eff', '#67c23a', '#909399', '#ff6b9d', '#c0c4cc']
+    : ['#67c23a', '#409eff', '#e6a23c', '#f56c6c', '#909399', '#ff6b9d', '#c0c4cc']
+  const colors = pieData.value.map((_, i) => palette[i % palette.length])
+  const total = pieData.value.reduce((s, d) => s + d.value, 0)
   return {
     tooltip: { trigger: 'item', formatter: '{b}: {d}%' },
     color: colors,
     series: [
       {
-        name: '支出分类',
+        name: type === 'expense' ? '支出分类' : '收入分类',
         type: 'pie',
         radius: ['55%', '80%'],
         avoidLabelOverlap: false,
@@ -868,7 +957,7 @@ const donutOption = computed(() => {
         left: 'center',
         top: '42%',
         style: {
-          text: '总支出',
+          text: type === 'expense' ? '总支出' : '总收入',
           textAlign: 'center',
           fill: '#999',
           fontSize: 12,
@@ -879,7 +968,7 @@ const donutOption = computed(() => {
         left: 'center',
         top: '52%',
         style: {
-          text: `¥${settingsStore.formatAmount(summary.value.totalExpense)}`,
+          text: `¥${settingsStore.formatAmount(total)}`,
           textAlign: 'center',
           fill: '#333',
           fontSize: 14,
@@ -913,7 +1002,9 @@ const assetOption = computed(() => {
     grid: { left: '3%', right: '3%', bottom: '3%', top: '10%', containLabel: true },
     xAxis: {
       type: 'category',
-      data: assetTrend.value.map((d) => d.date),
+      data: viewMode.value === 'year'
+        ? assetTrend.value.map((d) => (d as any).month)
+        : assetTrend.value.map((d) => d.date),
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: { interval: 0, fontSize: 10, color: '#999' },
@@ -975,7 +1066,9 @@ async function handleAiAnalysis() {
   aiResult.value = ''
   aiLoading.value = true
   try {
-    const s = buildBillSummary(selectedMonth.value)
+    const s = viewMode.value === 'year'
+      ? buildYearSummary(selectedYear.value)
+      : buildBillSummary(selectedMonth.value)
     const stream = streamAnalysis(s)
     for await (const chunk of stream) {
       if (chunk.error) {
