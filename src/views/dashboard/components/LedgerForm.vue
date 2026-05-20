@@ -43,7 +43,7 @@
 
     <el-form-item>
       <div class="flex gap-2">
-        <el-button class="flex-1" @click="$emit('cancel')">取消</el-button>
+        <el-button class="flex-1" @click="handleCancel">取消</el-button>
         <el-button type="primary" class="flex-1" @click="handleSubmit">保存</el-button>
       </div>
     </el-form-item>
@@ -98,6 +98,11 @@ watch(
   },
   { immediate: true }
 )
+
+function handleCancel() {
+  ElMessage.info('已取消')
+  emit('cancel')
+}
 
 function handleSubmit() {
   if (!form.amount || form.amount <= 0) {

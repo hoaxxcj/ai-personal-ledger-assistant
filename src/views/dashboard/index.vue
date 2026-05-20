@@ -15,8 +15,6 @@
       </template>
     </el-alert>
 
-    <api-key-config ref="apiKeyRef" />
-
     <!-- 头部工具栏 -->
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-4">
@@ -30,7 +28,6 @@
         />
         <el-button type="primary" :icon="Plus" @click="ledgerVisible = true">记一笔</el-button>
       </div>
-      <el-button text :icon="Setting" @click="apiKeyRef?.open()">API 配置</el-button>
     </div>
 
     <!-- 统计卡片 -->
@@ -180,7 +177,7 @@ import {
   TitleComponent,
 } from 'echarts/components'
 import VChart from 'vue-echarts'
-import { Plus, Setting, MagicStick, Loading } from '@element-plus/icons-vue'
+import { Plus, MagicStick, Loading } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import dayjs from 'dayjs'
 import { useLedgerStore } from '@/stores/ledger'
@@ -188,13 +185,11 @@ import { buildBillSummary, getLast7DaysExpense, getCategoryPieData } from '@/uti
 import { streamAnalysis } from '@/services/ai'
 import StatCard from './components/StatCard.vue'
 import LedgerForm from './components/LedgerForm.vue'
-import ApiKeyConfig from '@/components/ApiKeyConfig.vue'
 import AiChatFloat from '@/components/AiChatFloat.vue'
 
 use([CanvasRenderer, PieChart, LineChart, GridComponent, TooltipComponent, LegendComponent, TitleComponent])
 
 const ledgerStore = useLedgerStore()
-const apiKeyRef = ref()
 const selectedMonth = ref(dayjs().format('YYYY-MM'))
 const ledgerVisible = ref(false)
 const editingId = ref('')
@@ -209,9 +204,21 @@ const currentList = computed(() =>
     .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id))
 )
 
-const summary = computed(() => buildBillSummary(selectedMonth.value))
-const pieData = computed(() => getCategoryPieData(selectedMonth.value))
-const trendData = computed(() => getLast7DaysExpense())
+// 图表数据通过 localStorage 实时计算，依赖 transactions 长度确保数据变更时刷新
+const summary = computed(() => {
+  void ledgerStore.transactions.length
+  return buildBillSummary(selectedMonth.value)
+})
+
+const pieData = computed(() => {
+  void ledgerStore.transactions.length
+  return getCategoryPieData(selectedMonth.value)
+})
+
+const trendData = computed(() => {
+  void ledgerStore.transactions.length
+  return getLast7DaysExpense()
+})
 
 const pieOption = computed(() => ({
   tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },

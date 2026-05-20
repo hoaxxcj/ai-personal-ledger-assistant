@@ -35,11 +35,22 @@ export function saveTransactions(list: Transaction[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
 }
 
+function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
+
 export function addTransaction(record: Omit<Transaction, 'id'>) {
   const list = getTransactions()
   const newRecord: Transaction = {
     ...record,
-    id: crypto.randomUUID(),
+    id: generateUUID(),
   }
   list.unshift(newRecord)
   saveTransactions(list)
@@ -60,13 +71,16 @@ export function deleteTransaction(id: string) {
   saveTransactions(list)
 }
 
+const DEFAULT_API_KEY = 'sk-84e415c2c59d4c4dad50829a98d0945c'
+
 export function getApiConfig(): ApiConfig {
   try {
     const raw = localStorage.getItem(API_CONFIG_KEY)
-    return raw ? JSON.parse(raw) : { apiKey: '', model: 'deepseek-chat' }
+    if (raw) return JSON.parse(raw)
   } catch {
-    return { apiKey: '', model: 'deepseek-chat' }
+    // fall through
   }
+  return { apiKey: DEFAULT_API_KEY, model: 'deepseek-chat' }
 }
 
 export function saveApiConfig(config: ApiConfig) {
