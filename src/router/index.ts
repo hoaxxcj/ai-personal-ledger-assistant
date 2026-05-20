@@ -16,22 +16,10 @@ const router = createRouter({
           meta: { title: '账本' },
         },
         {
-          path: 'assets',
-          name: 'Assets',
-          component: () => import('@/views/dashboard/index.vue'),
-          meta: { title: '资产' },
-        },
-        {
-          path: 'savings',
-          name: 'Savings',
-          component: () => import('@/views/dashboard/index.vue'),
-          meta: { title: '存钱' },
-        },
-        {
-          path: 'stats',
-          name: 'Stats',
-          component: () => import('@/views/dashboard/index.vue'),
-          meta: { title: '统计' },
+          path: 'analysis',
+          name: 'Analysis',
+          component: () => import('@/views/analysis/index.vue'),
+          meta: { title: '分析' },
         },
         {
           path: 'settings',

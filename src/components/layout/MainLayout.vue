@@ -44,7 +44,7 @@ const route = useRoute()
 
 const menuItems = [
   { path: '/', label: '账本', icon: 'Document' },
-  { path: '/stats', label: '统计', icon: 'TrendCharts' },
+  { path: '/analysis', label: '分析', icon: 'TrendCharts' },
   { path: '/settings', label: '设置', icon: 'Setting' },
 ]
 
