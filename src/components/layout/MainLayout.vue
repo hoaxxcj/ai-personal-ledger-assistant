@@ -4,7 +4,9 @@
     <aside class="w-[72px] bg-white border-r border-gray-100 flex flex-col items-center py-4 shrink-0">
       <!-- 用户头像 -->
       <div class="mb-6">
-        <el-avatar :size="40" :icon="UserFilled" class="bg-primary text-white" />
+        <el-avatar :size="40" class="bg-primary text-white">
+          <el-icon :size="22"><UserFilled /></el-icon>
+        </el-avatar>
       </div>
 
       <!-- 导航菜单 -->

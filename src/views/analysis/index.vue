@@ -128,7 +128,7 @@
         <el-row :gutter="16">
           <el-col :xs="24" :lg="12">
             <el-card shadow="hover" class="!rounded-xl">
-              <template #header>月度收支对比</template>
+              <template #header>近半年月度收支对比</template>
               <div class="h-80">
                 <v-chart class="h-full" :option="barOption" autoresize />
               </div>
@@ -136,7 +136,7 @@
           </el-col>
           <el-col :xs="24" :lg="12">
             <el-card shadow="hover" class="!rounded-xl">
-              <template #header>分类趋势</template>
+              <template #header>近半年分类趋势</template>
               <div class="h-80">
                 <v-chart class="h-full" :option="lineOption" autoresize />
               </div>
@@ -146,7 +146,7 @@
 
         <!-- 支出方式趋势 -->
         <el-card shadow="hover" class="!rounded-xl">
-          <template #header>支出方式趋势</template>
+          <template #header>近半年支出方式趋势</template>
           <div class="h-80">
             <v-chart class="h-full" :option="paymentMethodOption" autoresize />
           </div>
@@ -286,15 +286,72 @@ const barOption = computed(() => {
     const s = buildBillSummary(m)
     return { month: dayjs(m + '-01').format('M月'), income: s.totalIncome, expense: s.totalExpense }
   })
+
+  // 往年同期数据
+  const prevYearData = recentMonths.value.map((m) => {
+    const prevMonth = dayjs(m + '-01').subtract(1, 'year').format('YYYY-MM')
+    const s = buildBillSummary(prevMonth)
+    return { income: s.totalIncome, expense: s.totalExpense }
+  })
+
+  // 用值轴精确控制柱状和折线的左右偏移
+  const offset = 0.1
+  const lineOffset = 0.2
+  const n = data.length
+
   return {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    legend: { data: ['收入', '支出'] },
+    legend: { data: ['收入', '支出', '往年同期收入', '往年同期支出'] },
     grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
-    xAxis: { type: 'category', data: data.map((d) => d.month) },
-    yAxis: { type: 'value' },
+    xAxis: {
+      type: 'value',
+      min: -0.5,
+      max: n - 0.5,
+      splitLine: { show: false },
+      axisLabel: {
+        formatter: (val) => {
+          if (val >= 0 && val < n && Number.isInteger(val)) {
+            return data[val].month
+          }
+          return ''
+        },
+      },
+    },
+    yAxis: { type: 'value', name: '金额', axisLine: { onZero: false } },
     series: [
-      { name: '收入', type: 'bar', data: data.map((d) => d.income), itemStyle: { color: '#67c23a' } },
-      { name: '支出', type: 'bar', data: data.map((d) => d.expense), itemStyle: { color: '#f56c6c' } },
+      {
+        name: '收入',
+        type: 'bar',
+        barWidth: 15,
+        data: data.map((d, i) => [i - offset, d.income]),
+        itemStyle: { color: '#67c23a' },
+      },
+      {
+        name: '支出',
+        type: 'bar',
+        barWidth: 15,
+        data: data.map((d, i) => [i + offset, d.expense]),
+        itemStyle: { color: '#f56c6c' },
+      },
+      {
+        name: '往年同期收入',
+        type: 'line',
+        data: prevYearData.map((d, i) => [i - lineOffset, d.income]),
+        itemStyle: { color: '#67c23a' },
+        lineStyle: { type: 'dashed', width: 2 },
+        symbol: 'circle',
+        symbolSize: 6,
+      },
+      {
+        name: '往年同期支出',
+        type: 'line',
+        data: prevYearData.map((d, i) => [i + lineOffset, d.expense]),
+        itemStyle: { color: '#f56c6c' },
+        lineStyle: { type: 'dashed', width: 2 },
+        symbol: 'circle',
+        symbolSize: 6,
+      }
+
     ],
   }
 })

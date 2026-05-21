@@ -81,6 +81,23 @@
 
             <el-divider class="!my-4" />
 
+            <!-- 每月默认预算 -->
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm font-medium">每月默认预算</div>
+                <div class="text-xs text-gray-400 mt-0.5">账本页面总预算的默认值</div>
+              </div>
+              <el-input-number
+                v-model="settingsStore.settings.monthlyBudget"
+                :min="0"
+                :step="500"
+                style="width: 140px"
+                @change="onBudgetChange"
+              />
+            </div>
+
+            <el-divider class="!my-4" />
+
             <!-- 记账后自动关闭弹窗 -->
             <div class="flex items-center justify-between">
               <div>
@@ -143,6 +160,11 @@ function onMonthChange(val: string) {
 
 function onThousandChange(val: boolean) {
   settingsStore.update({ thousandSeparator: val })
+  ElMessage.success('设置已保存')
+}
+
+function onBudgetChange(val: number) {
+  settingsStore.update({ monthlyBudget: val })
   ElMessage.success('设置已保存')
 }
 

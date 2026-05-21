@@ -4,33 +4,36 @@
     <div class="bg-white px-6 py-3 flex items-center justify-between border-b border-gray-100 shrink-0">
       <div class="flex items-center gap-2">
         <el-icon class="text-primary"><Document /></el-icon>
-        <span class="font-bold text-lg">{{ selectedYear }}账本</span>
+        <el-popover placement="bottom" :width="300" trigger="click" v-model:visible="yearPickerVisible">
+          <template #reference>
+            <span class="font-bold text-lg cursor-pointer hover:text-primary flex items-center gap-1">
+              {{ selectedYear }}年账本
+              <el-icon class="text-sm"><CaretBottom /></el-icon>
+            </span>
+          </template>
+          <el-date-picker v-model="tempYear" type="year" value-format="YYYY" @change="onYearChange" class="w-full" />
+        </el-popover>
       </div>
-      <div class="text-xl font-bold">账本</div>
       <div class="flex items-center gap-4">
         <el-button text :icon="Search" @click="searchVisible = true">搜索账单</el-button>
-        <el-button
-          text
-          :icon="Calendar"
-          :type="viewMode === 'month' ? 'primary' : ''"
-          @click="viewMode = 'month'"
-        >按月统计</el-button>
-        <el-button
-          text
-          :icon="Calendar"
-          :type="viewMode === 'year' ? 'primary' : ''"
-          @click="viewMode = 'year'"
-        >按年统计</el-button>
+        <el-segmented
+          v-model="viewMode"
+          :options="[
+            { label: '按月统计', value: 'month' },
+            { label: '按年统计', value: 'year' },
+          ]"
+          size="small"
+        />
       </div>
     </div>
 
     <!-- 主内容区 -->
     <div class="flex-1 overflow-auto p-4">
-      <div class="flex gap-4 h-full">
+      <div class="flex flex-col xl:flex-row gap-4 h-full">
         <!-- 左侧内容区 -->
         <div class="flex-1 space-y-4 min-w-0">
           <!-- 统计卡片 -->
-          <div class="grid grid-cols-4 gap-4">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <stat-card
               v-for="card in statCards"
               :key="card.title"
@@ -40,7 +43,7 @@
           </div>
 
           <!-- 图表区域 -->
-          <div class="flex gap-4">
+          <div class="flex flex-col lg:flex-row gap-4">
             <!-- 左侧列 -->
             <div class="flex-1 flex flex-col gap-4">
               <el-card shadow="hover" class="!rounded-xl">
@@ -161,25 +164,14 @@
         </div>
 
         <!-- 右侧日历+明细 -->
-        <div class="w-[380px] shrink-0 space-y-4">
+        <div class="xl:w-[380px] w-full xl:shrink-0 space-y-4">
           <!-- 日历 -->
           <el-card shadow="hover" class="!rounded-xl">
             <template #header>
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <el-icon class="text-primary"><Calendar /></el-icon>
-                  <el-popover placement="bottom" :width="220" trigger="click" v-model:visible="yearPickerVisible">
-                    <template #reference>
-                      <span class="font-bold cursor-pointer hover:text-primary">{{ selectedYear }}年</span>
-                    </template>
-                    <el-date-picker
-                      v-model="tempYear"
-                      type="year"
-                      value-format="YYYY"
-                      @change="onYearChange"
-                      class="w-full"
-                    />
-                  </el-popover>
+                  <span class="font-bold">{{ selectedYear }}年</span>
                   <span class="font-bold">{{ selectedMonthNum }}月</span>
                 </div>
                 <div class="flex gap-2">
@@ -235,7 +227,7 @@
               </div>
             </template>
 
-            <div class="space-y-3 max-h-[320px] overflow-y-auto">
+            <div class="space-y-3 max-h-[320px] overflow-y-auto thin-scroll">
               <div
                 v-for="item in dayTransactions"
                 :key="item.id"
@@ -275,7 +267,7 @@
               </div>
             </template>
 
-            <div class="space-y-3 max-h-[240px] overflow-y-auto">
+            <div class="space-y-3 max-h-[240px] overflow-y-auto thin-scroll">
               <div
                 v-for="item in reimbursableList"
                 :key="item.id"
@@ -405,6 +397,7 @@ import {
   Document,
   DataLine,
   Money,
+  CaretBottom,
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import dayjs from 'dayjs'
@@ -614,7 +607,12 @@ const reimbursableList = computed(() => {
     : getReimbursableList(selectedMonth.value)
 })
 
-const statCards = computed(() => [
+const statCards = computed(() => {
+  const budgetRemaining = settingsStore.settings.monthlyBudget - summary.value.totalExpense
+  const dailyRemaining = budgetRemaining / dayjs(selectedMonth.value).daysInMonth()
+  const dailySign = dailyRemaining < 0 ? '-' : ''
+
+  return [
   {
     title: viewMode.value === 'year' ? '年度总支出' : '总支出',
     amount: summary.value.totalExpense,
@@ -626,10 +624,10 @@ const statCards = computed(() => [
   },
   {
     title: viewMode.value === 'year' ? '年度结余' : '剩余预算',
-    amount: viewMode.value === 'year' ? summary.value.balance : 3000 - summary.value.totalExpense,
+    amount: viewMode.value === 'year' ? summary.value.balance : budgetRemaining,
     subtitle: viewMode.value === 'year'
       ? `月均支出 ¥${settingsStore.formatAmount((summary.value as any).monthlyAverage || 0)}`
-      : `总预算 ¥3,000.00\n剩余日均 ¥${settingsStore.formatAmount((3000 - summary.value.totalExpense) / dayjs(selectedMonth.value).daysInMonth())}`,
+      : `总预算 ¥${settingsStore.formatAmount(settingsStore.settings.monthlyBudget)}\n剩余日均 ${dailySign}¥${settingsStore.formatAmount(Math.abs(dailyRemaining))}`,
     type: 'budget' as const,
     dotColor: '#67c23a',
   },
@@ -647,8 +645,8 @@ const statCards = computed(() => [
     type: 'balance' as const,
     dotColor: '#e6a23c',
   },
-])
-
+  ]
+})
 const categoryColors: Record<string, string> = {
   餐饮: '#f56c6c',
   交通: '#409eff',
@@ -932,10 +930,12 @@ onMounted(() => {
 
 <style scoped>
 .category-detail-card {
-  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 .category-detail-card :deep(.el-card__body) {
-  height: calc(100% - 55px);
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -944,5 +944,20 @@ onMounted(() => {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+}
+.thin-scroll::-webkit-scrollbar {
+  width: 7px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background-color: #e5e7eb;
+  border-radius: 2px;
+  border-left: 3px solid transparent;
+  background-clip: padding-box;
+}
+.thin-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #d1d5db;
 }
 </style>

@@ -7,12 +7,14 @@ export interface Settings {
   defaultMonth: 'current' | 'last'
   thousandSeparator: boolean
   autoCloseLedger: boolean
+  monthlyBudget: number
 }
 
 const defaultSettings: Settings = {
   defaultMonth: 'current',
   thousandSeparator: true,
   autoCloseLedger: true,
+  monthlyBudget: 3000,
 }
 
 function loadSettings(): Settings {
