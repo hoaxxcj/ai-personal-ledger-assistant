@@ -33,6 +33,15 @@
       </div>
     </el-form-item>
 
+    <el-form-item v-if="form.type === 'expense'" label="支出方式">
+      <el-radio-group v-model="form.paymentMethod" size="default">
+        <el-radio-button label="支付宝">支付宝</el-radio-button>
+        <el-radio-button label="微信">微信</el-radio-button>
+        <el-radio-button label="银行卡">银行卡</el-radio-button>
+        <el-radio-button label="其它">其它</el-radio-button>
+      </el-radio-group>
+    </el-form-item>
+
     <el-form-item v-if="form.type === 'expense'" label="报销属性">
       <el-radio-group v-model="form.reimbursement" size="default">
         <el-radio-button label="personal">自用</el-radio-button>
@@ -78,6 +87,7 @@ const form = reactive({
   type: 'expense' as 'income' | 'expense',
   amount: undefined as number | undefined,
   category: '',
+  paymentMethod: '支付宝' as string,
   reimbursement: 'personal' as 'personal' | 'reimbursable',
   date: dayjs().format('YYYY-MM-DD'),
   note: '',
@@ -94,6 +104,7 @@ watch(
       form.type = val.type
       form.amount = val.amount
       form.category = val.category
+      form.paymentMethod = val.paymentMethod || '支付宝'
       form.reimbursement = val.reimbursement || 'personal'
       form.date = val.date
       form.note = val.note
@@ -101,6 +112,7 @@ watch(
       form.type = 'expense'
       form.amount = undefined
       form.category = ''
+      form.paymentMethod = '支付宝'
       form.reimbursement = 'personal'
       form.date = dayjs().format('YYYY-MM-DD')
       form.note = ''
@@ -128,6 +140,7 @@ function handleSubmit() {
     type: form.type,
     amount: form.amount,
     category: form.category,
+    paymentMethod: form.type === 'expense' ? form.paymentMethod : undefined,
     reimbursement: form.type === 'expense' ? form.reimbursement : undefined,
     date: form.date,
     note: form.note,

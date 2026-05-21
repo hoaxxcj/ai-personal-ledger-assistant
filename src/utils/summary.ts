@@ -370,3 +370,36 @@ export function getCategoryCompare(month?: string) {
     }
   })
 }
+
+// ===== 支出方式趋势 =====
+
+export function getPaymentMethodTrend(months: string[]) {
+  const methods = ['支付宝', '微信', '银行卡', '其它']
+  const colors: Record<string, string> = {
+    支付宝: '#1677ff',
+    微信: '#07c160',
+    银行卡: '#f7ba2a',
+    其它: '#909399',
+  }
+
+  const series = methods.map((method) => ({
+    name: method,
+    type: 'line' as const,
+    smooth: true,
+    symbol: 'circle',
+    symbolSize: 6,
+    data: months.map((m) => {
+      const list = getTransactions().filter(
+        (t) => t.date.startsWith(m) && t.type === 'expense' && t.paymentMethod === method
+      )
+      return list.reduce((s, t) => s + t.amount, 0)
+    }),
+    itemStyle: { color: colors[method] },
+    lineStyle: { width: 2 },
+  }))
+
+  return {
+    months,
+    series,
+  }
+}

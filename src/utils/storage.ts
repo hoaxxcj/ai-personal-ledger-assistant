@@ -10,6 +10,7 @@ export interface Transaction {
   date: string
   note: string
   reimbursement?: 'personal' | 'reimbursable' | 'reimbursed'
+  paymentMethod?: string
 }
 
 export interface ApiConfig {

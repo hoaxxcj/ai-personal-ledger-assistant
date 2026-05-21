@@ -40,134 +40,93 @@
           </div>
 
           <!-- 图表区域 -->
-          <div class="grid grid-cols-2 gap-4">
-            <!-- 支出统计图 -->
-            <el-card shadow="hover" class="!rounded-xl">
-              <template #header>
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <div class="w-2 h-2 rounded-full bg-warning"></div>
-                    <span class="font-medium">{{ barChartType === 'expense' ? '支出' : barChartType === 'income' ? '收入' : '结余' }}统计图</span>
-                    <span class="text-xs text-gray-400">平均值: ¥{{ settingsStore.formatAmount(avgDailyBar) }}</span>
+          <div class="flex gap-4">
+            <!-- 左侧列 -->
+            <div class="flex-1 flex flex-col gap-4">
+              <el-card shadow="hover" class="!rounded-xl">
+                <template #header>
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <div class="w-2 h-2 rounded-full bg-warning"></div>
+                      <span class="font-medium">{{ barChartType === 'expense' ? '支出' : barChartType === 'income' ? '收入' : '结余' }}统计图</span>
+                      <span class="text-xs text-gray-400">平均值: ¥{{ settingsStore.formatAmount(avgDailyBar) }}</span>
+                    </div>
+                    <el-icon class="text-gray-400 cursor-pointer"><DataLine /></el-icon>
                   </div>
-                  <el-icon class="text-gray-400 cursor-pointer"><DataLine /></el-icon>
+                </template>
+                <div v-if="chartHasData" class="h-64">
+                  <v-chart class="h-full" :option="barOption" autoresize />
                 </div>
-              </template>
-              <div v-if="dailyData.some((d) => d.expense > 0)" class="h-64">
-                <v-chart class="h-full" :option="barOption" autoresize />
-              </div>
-              <div v-else class="h-64 flex items-center justify-center text-gray-400">
-                暂无数据，记一笔吧~
-              </div>
-              <div class="flex justify-center gap-6 mt-2">
-                <span
-                  class="text-sm cursor-pointer"
-                  :class="barChartType === 'expense' ? 'text-primary font-medium' : 'text-gray-300 hover:text-primary'"
-                  @click="barChartType = 'expense'"
-                >支出</span>
-                <span
-                  class="text-sm cursor-pointer"
-                  :class="barChartType === 'income' ? 'text-primary font-medium' : 'text-gray-300 hover:text-primary'"
-                  @click="barChartType = 'income'"
-                >收入</span>
-                <span
-                  class="text-sm cursor-pointer"
-                  :class="barChartType === 'balance' ? 'text-primary font-medium' : 'text-gray-300 hover:text-primary'"
-                  @click="barChartType = 'balance'"
-                >结余</span>
-              </div>
-            </el-card>
+                <div v-else class="h-64 flex items-center justify-center text-gray-400">
+                  暂无数据，记一笔吧~
+                </div>
+                <div class="flex justify-center mt-3">
+                  <el-segmented
+                    v-model="barChartType"
+                    :options="[
+                      { label: '支出', value: 'expense' },
+                      { label: '收入', value: 'income' },
+                      { label: '结余', value: 'balance' },
+                    ]"
+                    size="small"
+                  />
+                </div>
+              </el-card>
 
-            <!-- 支出分类详情 -->
-            <el-card shadow="hover" class="!rounded-xl">
+              <el-card shadow="hover" class="!rounded-xl">
+                <template #header>
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <div class="w-2 h-2 rounded-full bg-success"></div>
+                      <span class="font-medium">净资产趋势图</span>
+                    </div>
+                  </div>
+                </template>
+                <div class="h-64">
+                  <v-chart class="h-full" :option="assetOption" autoresize />
+                </div>
+              </el-card>
+            </div>
+
+            <!-- 右侧列：分类详情 -->
+            <el-card shadow="hover" class="!rounded-xl flex-1 category-detail-card">
               <template #header>
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-warning"></div>
-                    <span class="font-medium">{{ pieChartType === 'expense' ? '支出' : '收入' }}分类详情</span>
+                    <span class="font-medium">{{ pieChartType === 'expense' ? '支出分类详情' : '收入分类详情' }}</span>
                   </div>
                   <el-button text size="small">一级分类</el-button>
                 </div>
               </template>
-              <div class="flex">
-                <div v-if="pieData.length" class="h-64 w-1/2">
-                  <v-chart class="h-full" :option="donutOption" autoresize />
-                </div>
-                <div v-else class="h-64 w-1/2 flex items-center justify-center text-gray-400">
+
+              <!-- 玫瑰图 -->
+              <div class="shrink-0 h-56 w-[280px] mx-auto">
+                <v-chart
+                  v-if="pieData.length"
+                  class="w-full h-full"
+                  :option="donutOption"
+                  autoresize
+                />
+                <div v-else class="w-full h-full flex items-center justify-center text-gray-400">
                   暂无数据
                 </div>
-                <div class="w-1/2 flex flex-col justify-center gap-3 pl-2">
-                  <div
-                    v-for="item in categoryDetail.slice(0, 5)"
-                    :key="item.category"
-                    class="flex items-center gap-2"
-                  >
-                    <div class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: getCategoryColor(item.category) }"></div>
-                    <span class="text-xs text-gray-500 w-16 truncate">{{ item.category }}</span>
-                    <span class="text-xs text-gray-400">{{ (item.percentage * 100).toFixed(1) }}%</span>
-                  </div>
-                </div>
               </div>
-              <div class="flex justify-center gap-6 mt-2">
-                <span
-                  class="text-sm cursor-pointer"
-                  :class="pieChartType === 'expense' ? 'text-primary font-medium' : 'text-gray-300 hover:text-primary'"
-                  @click="pieChartType = 'expense'"
-                >支出</span>
-                <span
-                  class="text-sm cursor-pointer"
-                  :class="pieChartType === 'income' ? 'text-primary font-medium' : 'text-gray-300 hover:text-primary'"
-                  @click="pieChartType = 'income'"
-                >收入</span>
-              </div>
-            </el-card>
-          </div>
 
-          <!-- 第二排图表 -->
-          <div class="grid grid-cols-2 gap-4">
-            <!-- 净资产趋势图 -->
-            <el-card shadow="hover" class="!rounded-xl">
-              <template #header>
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <div class="w-2 h-2 rounded-full bg-success"></div>
-                    <span class="font-medium">净资产趋势图</span>
-                  </div>
-                </div>
-              </template>
-              <div class="h-64">
-                <v-chart class="h-full" :option="assetOption" autoresize />
+              <!-- 支出/收入切换 -->
+              <div class="flex justify-center mt-2 shrink-0">
+                <el-segmented
+                  v-model="pieChartType"
+                  :options="[
+                    { label: '支出', value: 'expense' },
+                    { label: '收入', value: 'income' },
+                  ]"
+                  size="small"
+                />
               </div>
-              <div class="flex justify-center gap-6 mt-2">
-                <span
-                  class="text-sm cursor-pointer"
-                  :class="assetChartType === 'asset' ? 'text-primary font-medium' : 'text-gray-300 hover:text-primary'"
-                  @click="assetChartType = 'asset'"
-                >净资产</span>
-                <span
-                  class="text-sm cursor-pointer"
-                  :class="assetChartType === 'totalAsset' ? 'text-primary font-medium' : 'text-gray-300 hover:text-primary'"
-                  @click="assetChartType = 'totalAsset'"
-                >总资产</span>
-                <span
-                  class="text-sm cursor-pointer"
-                  :class="assetChartType === 'totalDebt' ? 'text-primary font-medium' : 'text-gray-300 hover:text-primary'"
-                  @click="assetChartType = 'totalDebt'"
-                >总负债</span>
-              </div>
-            </el-card>
 
-            <!-- 分类列表 -->
-            <el-card shadow="hover" class="!rounded-xl">
-              <template #header>
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <div class="w-2 h-2 rounded-full bg-warning"></div>
-                    <span class="font-medium">{{ pieChartType === 'expense' ? '支出分类排行' : '收入分类排行' }}</span>
-                  </div>
-                </div>
-              </template>
-              <div class="space-y-3 max-h-64 overflow-y-auto">
+              <!-- 分类排行列表 -->
+              <div class="mt-3 space-y-2 category-detail-list">
                 <div
                   v-for="(item, idx) in categoryDetail"
                   :key="item.category"
@@ -180,7 +139,10 @@
                   </div>
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between mb-1">
-                      <span class="text-sm font-medium">{{ item.category }}</span>
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium">{{ item.category }}</span>
+                        <span class="text-xs text-gray-400">{{ (item.percentage * 100).toFixed(1) }}%</span>
+                      </div>
                       <span class="text-sm font-bold">¥{{ settingsStore.formatAmount(item.amount) }}</span>
                     </div>
                     <el-progress
@@ -189,7 +151,7 @@
                       :show-text="false"
                       :stroke-width="6"
                     />
-                    <div class="text-xs text-gray-400 mt-0.5">{{ item.count }}笔</div>
+                    <div class="text-xs text-gray-400 mt-0.5 text-right">{{ item.count }}笔</div>
                   </div>
                 </div>
               </div>
@@ -488,7 +450,6 @@ const editingId = ref('')
 const editingData = ref()
 
 const barChartType = ref<'expense' | 'income' | 'balance'>('expense')
-const assetChartType = ref<'asset' | 'totalAsset' | 'totalDebt'>('asset')
 const pieChartType = ref<'expense' | 'income'>('expense')
 const viewMode = ref<'month' | 'year'>('month')
 
@@ -611,6 +572,13 @@ const daySummary = computed(() => {
   return getDaySummary(selectedDate.value)
 })
 
+const chartHasData = computed(() => {
+  const type = barChartType.value
+  if (type === 'expense') return dailyData.value.some((d) => d.expense > 0)
+  if (type === 'income') return dailyData.value.some((d) => d.income > 0)
+  return dailyData.value.some((d) => d.income - d.expense !== 0)
+})
+
 const avgDailyBar = computed(() => {
   const type = barChartType.value
   const divisor = viewMode.value === 'year' ? 12 : dailyData.value.length
@@ -714,6 +682,7 @@ function getCategoryIcon(cat: string) {
 }
 
 const calendarDays = computed(() => {
+  void ledgerStore.transactions.length
   const yearMonth = selectedMonth.value
   const firstDay = dayjs(yearMonth + '-01')
   const daysInMonth = firstDay.daysInMonth()
@@ -807,6 +776,7 @@ const barOption = computed(() => {
 })
 
 const donutOption = computed(() => {
+  void ledgerStore.transactions.length
   const type = pieChartType.value
   const palette = type === 'expense'
     ? ['#f56c6c', '#e6a23c', '#409eff', '#67c23a', '#909399', '#ff6b9d', '#c0c4cc']
@@ -814,17 +784,18 @@ const donutOption = computed(() => {
   const colors = pieData.value.map((_, i) => palette[i % palette.length])
   const total = pieData.value.reduce((s, d) => s + d.value, 0)
   return {
-    tooltip: { trigger: 'item', formatter: '{b}: {d}%' },
+    tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
     color: colors,
     series: [
       {
         name: type === 'expense' ? '支出分类' : '收入分类',
         type: 'pie',
-        radius: ['55%', '80%'],
-        avoidLabelOverlap: false,
-        itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 },
-        label: { show: false },
-        emphasis: { label: { show: false } },
+        radius: ['30%', '75%'],
+        center: ['50%', '50%'],
+        roseType: 'radius',
+        itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+        label: { show: true, formatter: '{b}\n{d}%', fontSize: 10 },
+        emphasis: { label: { show: true, fontSize: 12, fontWeight: 'bold' } },
         data: pieData.value,
       },
     ],
@@ -857,31 +828,28 @@ const donutOption = computed(() => {
 })
 
 const assetOption = computed(() => {
-  const type = assetChartType.value
-  let runningTotal = 0
-  const data =
-    type === 'asset'
-      ? assetTrend.value.map((d) => d.asset)
-      : type === 'totalAsset'
-        ? dailyData.value.map((d) => {
-            runningTotal += d.income
-            return runningTotal
-          })
-        : dailyData.value.map((d) => {
-            runningTotal += d.expense
-            return runningTotal
-          })
-  const color = type === 'asset' ? '#67c23a' : type === 'totalAsset' ? '#409eff' : '#f56c6c'
-  const areaColor =
-    type === 'asset' ? 'rgba(103, 194, 58, 0.15)' : type === 'totalAsset' ? 'rgba(64, 158, 255, 0.15)' : 'rgba(245, 108, 108, 0.15)'
+  let runningAsset = 0
+  let runningIncome = 0
+  let runningExpense = 0
+  const assetData = assetTrend.value.map((d) => d.asset)
+  const totalAssetData = dailyData.value.map((d) => {
+    runningIncome += d.income
+    return runningIncome
+  })
+  const totalDebtData = dailyData.value.map((d) => {
+    runningExpense += d.expense
+    return runningExpense
+  })
+  const labels = viewMode.value === 'year'
+    ? assetTrend.value.map((d) => (d as any).month)
+    : assetTrend.value.map((d) => d.date)
   return {
     tooltip: { trigger: 'axis' },
-    grid: { left: '3%', right: '3%', bottom: '3%', top: '10%', containLabel: true },
+    legend: { data: ['净资产', '总资产', '总负债'], top: 0 },
+    grid: { left: '3%', right: '3%', bottom: '3%', top: '15%', containLabel: true },
     xAxis: {
       type: 'category',
-      data: viewMode.value === 'year'
-        ? assetTrend.value.map((d) => (d as any).month)
-        : assetTrend.value.map((d) => d.date),
+      data: labels,
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: { interval: 0, fontSize: 10, color: '#999' },
@@ -893,12 +861,30 @@ const assetOption = computed(() => {
     },
     series: [
       {
-        name: type === 'asset' ? '净资产' : type === 'totalAsset' ? '总资产' : '总负债',
+        name: '净资产',
         type: 'line',
-        data,
+        data: assetData,
         smooth: true,
-        areaStyle: { color: areaColor },
-        itemStyle: { color },
+        areaStyle: { color: 'rgba(103, 194, 58, 0.15)' },
+        itemStyle: { color: '#67c23a' },
+        lineStyle: { width: 2 },
+        showSymbol: false,
+      },
+      {
+        name: '总资产',
+        type: 'line',
+        data: totalAssetData,
+        smooth: true,
+        itemStyle: { color: '#409eff' },
+        lineStyle: { width: 2 },
+        showSymbol: false,
+      },
+      {
+        name: '总负债',
+        type: 'line',
+        data: totalDebtData,
+        smooth: true,
+        itemStyle: { color: '#f56c6c' },
         lineStyle: { width: 2 },
         showSymbol: false,
       },
@@ -943,3 +929,20 @@ onMounted(() => {
   ledgerStore.refresh()
 })
 </script>
+
+<style scoped>
+.category-detail-card {
+  height: 100%;
+}
+.category-detail-card :deep(.el-card__body) {
+  height: calc(100% - 55px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.category-detail-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+</style>

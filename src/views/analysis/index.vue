@@ -144,6 +144,14 @@
           </el-col>
         </el-row>
 
+        <!-- 支出方式趋势 -->
+        <el-card shadow="hover" class="!rounded-xl">
+          <template #header>支出方式趋势</template>
+          <div class="h-80">
+            <v-chart class="h-full" :option="paymentMethodOption" autoresize />
+          </div>
+        </el-card>
+
         <!-- AI 消费洞察 -->
         <el-card shadow="hover" class="!rounded-xl">
           <template #header>
@@ -193,6 +201,7 @@ import {
   getCategoryPieData,
   getMonthCompare,
   getCategoryCompare,
+  getPaymentMethodTrend,
 } from '@/utils/summary'
 import { streamAnalysis } from '@/services/ai'
 import { useSettingsStore } from '@/stores/settings'
@@ -348,6 +357,19 @@ const pieOption = computed(() => {
         })),
       },
     ],
+  }
+})
+
+const paymentMethodOption = computed(() => {
+  void ledgerStore.transactions.length
+  const trend = getPaymentMethodTrend(recentMonths.value)
+  return {
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['支付宝', '微信', '银行卡', '其它'] },
+    grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
+    xAxis: { type: 'category', data: trend.months.map((m: string) => dayjs(m + '-01').format('M月')) },
+    yAxis: { type: 'value' },
+    series: trend.series,
   }
 })
 </script>

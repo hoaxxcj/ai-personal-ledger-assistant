@@ -1,14 +1,13 @@
 <template>
-  <div class="fixed bottom-6 right-6 z-50">
+  <div class="fixed bottom-24 right-8 z-50">
     <el-button
       v-if="!visible"
       type="primary"
       circle
-      size="large"
-      class="shadow-lg"
+      class="!w-14 !h-14 shadow-lg"
       @click="visible = true"
     >
-      <el-icon class="text-xl"><ChatDotRound /></el-icon>
+      <el-icon class="text-2xl"><ChatDotRound /></el-icon>
     </el-button>
 
     <el-card v-else class="w-[400px] h-[550px] flex flex-col shadow-2xl" body-style="padding:0;height:100%">
